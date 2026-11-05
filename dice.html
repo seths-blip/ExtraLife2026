@@ -35,7 +35,7 @@ body {
 #action-btn { background: rgba(0, 0, 0, 0.7); border: 2px solid var(--skull-glow); border-radius: 5px; padding: 15px 50px; font-size: 36px; letter-spacing: 6px; color: #fff; cursor: pointer; }
 #dice-scene { width: 150px; height: 150px; perspective: 1200px; position: absolute; z-index: 10; display: none; }
 #dice-trajectory { width: 100%; height: 100%; }
-#d20 { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 4.5s cubic-bezier(0.15, 0.85, 0.3, 1); }
+#d20 { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; }
 .face { position: absolute; width: 150px; height: 129.9px; transform-origin: 50% 66.666%; backface-visibility: hidden; }
 .face svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: visible; }
 .face polygon { stroke: var(--dice-border); stroke-width: 4px; stroke-linejoin: round; }
@@ -84,19 +84,30 @@ let isRolling = false;
 function rollDice() {
   if (isRolling) return;
   isRolling = true;
-  document.getElementById('interactive-zone').style.display = 'none';
-  document.getElementById('dice-scene').style.display = 'block';
   
-  // Forces the graphics engine to register the starting frame so the transition actually plays
+  // Fade out interactive elements
+  document.getElementById('interactive-zone').style.opacity = '0';
+  document.getElementById('interactive-zone').style.pointerEvents = 'none';
+  
+  const scene = document.getElementById('dice-scene');
+  scene.style.display = 'block';
+  
+  // Strip previous transition, force a render at 0 degrees, then apply new transition
+  d20.style.transition = 'none';
   d20.style.transform = 'rotateX(0deg) rotateY(0deg) rotateZ(0deg)';
-  void d20.offsetWidth; 
-
+  
   const finalNum = getTrueRandom(1, 20);
   const targetFace = facesData.find(f => f.n === finalNum);
   const rotX = (getTrueRandom(6, 9) * 360) - targetFace.x;
   const rotY = (getTrueRandom(6, 9) * 360) - targetFace.y;
   
-  d20.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg) rotateZ(${getTrueRandom(6,9)*360}deg)`;
+  // Double requestAnimationFrame ensures Chromium paints the 0deg start frame
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      d20.style.transition = 'transform 4.5s cubic-bezier(0.15, 0.85, 0.3, 1)';
+      d20.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg) rotateZ(${getTrueRandom(6,9)*360}deg)`;
+    });
+  });
   
   setTimeout(() => {
     const res = document.getElementById('result-text');
@@ -104,8 +115,9 @@ function rollDice() {
     res.classList.add('show-result');
     setTimeout(() => {
       res.classList.remove('show-result');
-      document.getElementById('dice-scene').style.display = 'none';
-      document.getElementById('interactive-zone').style.display = 'flex';
+      scene.style.display = 'none';
+      document.getElementById('interactive-zone').style.opacity = '1';
+      document.getElementById('interactive-zone').style.pointerEvents = 'auto';
       d20.style.transform = 'none';
       isRolling = false;
     }, 4500);
