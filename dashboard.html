@@ -48,9 +48,12 @@
         <div class="input-box">
           <input type="checkbox" id="clock-show" checked onchange="updateConfig()"> Show
           <select id="clock-pos" onchange="updateConfig()">
-            <option value="top-right">Top Right</option>
             <option value="top-left">Top Left</option>
+            <option value="top-center">Top Center</option>
+            <option value="top-right">Top Right</option>
+            <option value="center">Dead Center</option>
             <option value="bottom-left">Bottom Left</option>
+            <option value="bottom-center">Bottom Center</option>
             <option value="bottom-right">Bottom Right</option>
           </select>
         </div>
@@ -101,8 +104,11 @@
         <div class="input-box">
           <select id="np-pos" onchange="updateConfig()">
             <option value="top-left">Top Left</option>
+            <option value="top-center">Top Center</option>
             <option value="top-right">Top Right</option>
+            <option value="center">Dead Center</option>
             <option value="bottom-left">Bottom Left</option>
+            <option value="bottom-center">Bottom Center</option>
             <option value="bottom-right">Bottom Right</option>
           </select>
         </div>
@@ -151,11 +157,13 @@
         <label>Alert Position</label>
         <div class="input-box">
           <select id="alert-pos" onchange="updateConfig()">
-            <option value="center">Dead Center</option>
-            <option value="top-center">Top Center</option>
-            <option value="bottom-center">Bottom Center</option>
             <option value="top-left">Top Left</option>
+            <option value="top-center">Top Center</option>
             <option value="top-right">Top Right</option>
+            <option value="center">Dead Center</option>
+            <option value="bottom-left">Bottom Left</option>
+            <option value="bottom-center">Bottom Center</option>
+            <option value="bottom-right">Bottom Right</option>
           </select>
         </div>
       </div>
