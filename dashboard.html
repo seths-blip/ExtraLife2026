@@ -206,8 +206,11 @@
     
     client.subscribe(topicName);
 
-    function sendPayload(type, payload) {
-      if (client.connected) client.publish(topicName, JSON.stringify({ type, payload, sender: myClientID }));
+    // Added retain parameter. If retain is true, EMQX saves this payload permanently in the cloud.
+    function sendPayload(type, payload, retain = false) {
+      if (client.connected) {
+        client.publish(topicName, JSON.stringify({ type, payload, sender: myClientID }), { retain: retain });
+      }
     }
 
     function renderPlaylist(tracks) {
@@ -262,7 +265,9 @@
         effects: { sound: document.getElementById('effect-sound').checked, visual: document.getElementById('effect-visual').checked },
         targetTime: document.getElementById('target-time').value ? new Date(document.getElementById('target-time').value).getTime() : null
       };
-      sendPayload('config', config);
+      
+      // We pass true here so EMQX permanently stores the layout config
+      sendPayload('config', config, true);
       localStorage.setItem('extralife_cfg', JSON.stringify(config));
     }
 
