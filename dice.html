@@ -33,9 +33,13 @@ body {
 #interactive-zone { position: absolute; z-index: 20; display: flex; flex-direction: column; align-items: center; gap: 40px; }
 #skull { width: 300px; height: 300px; fill: var(--skull-color); filter: drop-shadow(0px 0px 15px var(--skull-glow)); cursor: pointer; }
 #action-btn { background: rgba(0, 0, 0, 0.7); border: 2px solid var(--skull-glow); border-radius: 5px; padding: 15px 50px; font-size: 36px; letter-spacing: 6px; color: #fff; cursor: pointer; }
+
 #dice-scene { width: 150px; height: 150px; perspective: 1200px; position: absolute; z-index: 10; display: none; }
-#dice-trajectory { width: 100%; height: 100%; }
+/* The wrapper handles the physical throw across the screen */
+#dice-trajectory { width: 100%; height: 100%; transform-style: preserve-3d; }
+/* The inner d20 handles the 3D tumbling spin */
 #d20 { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; }
+
 .face { position: absolute; width: 150px; height: 129.9px; transform-origin: 50% 66.666%; backface-visibility: hidden; }
 .face svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: visible; }
 .face polygon { stroke: var(--dice-border); stroke-width: 4px; stroke-linejoin: round; }
@@ -64,6 +68,7 @@ function getTrueRandom(min, max) {
 }
 
 const d20 = document.getElementById('d20');
+const trajectory = document.getElementById('dice-trajectory');
 const facesData = [];
 const Z_OFFSET = 113.4;
 const top5 = [20, 2, 14, 8, 11], midUp5 = [18, 4, 16, 6, 12], midLow5 = [15, 9, 3, 17, 5], bottom5 = [13, 10, 1, 19, 7];
@@ -85,25 +90,25 @@ function rollDice() {
   if (isRolling) return;
   isRolling = true;
   
+  // Fade out interactive elements
   document.getElementById('interactive-zone').style.opacity = '0';
   document.getElementById('interactive-zone').style.pointerEvents = 'none';
   
   const scene = document.getElementById('dice-scene');
-  const trajectory = document.getElementById('dice-trajectory');
   scene.style.display = 'block';
   
-  // 1. Calculate a random 360-degree starting angle and spawn it far off-screen (150vmax)
+  // 1. Calculate a random 360-degree starting angle far off-screen
   const angle = Math.random() * Math.PI * 2;
-  const startX = Math.cos(angle) * 150 + 'vmax';
-  const startY = Math.sin(angle) * 150 + 'vmax';
+  const startX = Math.cos(angle) * 150 + 'vw';
+  const startY = Math.sin(angle) * 150 + 'vh';
   
   // 2. Calculate a slightly randomized landing zone near the center
-  const endX = (Math.random() * 20 - 10) + 'vw';
-  const endY = (Math.random() * 20 - 10) + 'vh';
+  const endX = (Math.random() * 10 - 5) + 'vw';
+  const endY = (Math.random() * 10 - 5) + 'vh';
   
-  // 3. Strip transitions and warp the dice to the off-screen start position
+  // 3. Strip previous transitions and warp the wrapper off-screen instantly
   trajectory.style.transition = 'none';
-  trajectory.style.transform = `translate(${startX}, ${startY}) scale(0.2) rotate(${getTrueRandom(-1,1)*180}deg)`;
+  trajectory.style.transform = `translate(${startX}, ${startY}) scale(0.1)`;
   
   d20.style.transition = 'none';
   d20.style.transform = 'rotateX(0deg) rotateY(0deg) rotateZ(0deg)';
@@ -113,19 +118,19 @@ function rollDice() {
   const rotX = (getTrueRandom(6, 9) * 360) - targetFace.x;
   const rotY = (getTrueRandom(6, 9) * 360) - targetFace.y;
   
-  // 4. Force browser reflow to register the starting frame
-  void d20.offsetWidth;
-  void trajectory.offsetWidth;
+  // 4. Force browser reflow so Chromium acknowledges the starting position
+  void trajectory.offsetWidth; 
+  void d20.offsetWidth; 
   
-  // 5. Apply the throwing and spinning animations
+  // 5. Apply the throwing and tumbling animations simultaneously
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      // Trajectory Throw (Moves from off-screen to the slightly randomized center)
-      trajectory.style.transition = 'transform 4s cubic-bezier(0.15, 0.85, 0.3, 1)';
-      trajectory.style.transform = `translate(${endX}, ${endY}) scale(1) rotate(0deg)`;
-      
-      // 3D Tumble (Spins the dice itself)
-      d20.style.transition = 'transform 4.5s cubic-bezier(0.15, 0.85, 0.3, 1)';
+      // The Throw: Moves from off-screen to the center while scaling up
+      trajectory.style.transition = 'transform 3.5s cubic-bezier(0.1, 0.9, 0.2, 1)';
+      trajectory.style.transform = `translate(${endX}, ${endY}) scale(1)`;
+
+      // The Tumble: Spins the dice aggressively
+      d20.style.transition = 'transform 4s cubic-bezier(0.1, 0.9, 0.2, 1)';
       d20.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg) rotateZ(${getTrueRandom(6,9)*360}deg)`;
     });
   });
