@@ -87,6 +87,10 @@ function rollDice() {
   document.getElementById('interactive-zone').style.display = 'none';
   document.getElementById('dice-scene').style.display = 'block';
   
+  // Forces the graphics engine to register the starting frame so the transition actually plays
+  d20.style.transform = 'rotateX(0deg) rotateY(0deg) rotateZ(0deg)';
+  void d20.offsetWidth; 
+
   const finalNum = getTrueRandom(1, 20);
   const targetFace = facesData.find(f => f.n === finalNum);
   const rotX = (getTrueRandom(6, 9) * 360) - targetFace.x;
