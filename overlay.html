@@ -38,7 +38,8 @@
     #progress-bar-bg { position: absolute; bottom: 54px; left: 0; width: 100%; height: 6px; background: rgba(0,0,0,0.5); z-index: 1001; display: none; }
     #progress-bar-fill { width: 0%; height: 100%; background: #55FF55; box-shadow: 0 0 10px #55FF55; transition: width 2s ease-in-out; }
 
-    #alert-wrapper { position: absolute; z-index: 9999; transition: all 0.5s ease; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+    /* CSS Transform removed here so it doesn't fight the JavaScript boundaries */
+    #alert-wrapper { position: absolute; z-index: 9999; transition: all 0.5s ease; }
     #alert-box { display: none; background-color: #8B0000; border: 4px solid #D4AF37; padding: 15px 30px; font-size: 36px; text-align: center; text-shadow: 2px 2px #000; box-shadow: 0px 0px 15px #D4AF37; animation: popup 0.5s ease-out; white-space: nowrap; }
     @keyframes popup { 0% { transform: translateY(50px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
     
@@ -91,23 +92,36 @@
 
     function applyPosition(el, pos, width, height) {
       if (!pos) pos = 'top-left'; 
-      el.style.top = ''; el.style.bottom = ''; el.style.left = ''; el.style.right = ''; el.style.transform = '';
-      if(width) el.style.width = width + 'px'; 
-      if(height) el.style.height = height + 'px';
+      el.style.top = ''; el.style.bottom = ''; el.style.left = ''; el.style.right = ''; 
+      
+      let transformStr = 'translate(0, 0)';
+
+      if(width) el.style.width = width + (typeof width === 'number' ? 'px' : ''); 
+      if(height) el.style.height = height + (typeof height === 'number' ? 'px' : '');
       
       let originY = pos.includes('top') ? 'top' : (pos.includes('bottom') ? 'bottom' : 'center');
       let originX = pos.includes('left') ? 'left' : (pos.includes('right') ? 'right' : 'center');
       el.style.transformOrigin = `${originY} ${originX}`;
 
+      // Bounding Box Fix: Prevents 1920x1080 full-screen iframes from being padded 50px off-screen
+      if (width == 1920 && height == 1080) {
+        el.style.top = '0px';
+        el.style.left = '0px';
+        el.style.transform = 'none';
+        return; 
+      }
+
       switch(pos) {
         case 'top-left': el.style.top = '50px'; el.style.left = '50px'; break;
         case 'top-right': el.style.top = '50px'; el.style.right = '50px'; break;
-        case 'top-center': el.style.top = '50px'; el.style.left = '50%'; el.style.transform = 'translateX(-50%)'; break;
+        case 'top-center': el.style.top = '50px'; el.style.left = '50%'; transformStr = 'translateX(-50%)'; break;
         case 'bottom-left': el.style.bottom = '80px'; el.style.left = '50px'; break; 
         case 'bottom-right': el.style.bottom = '80px'; el.style.right = '50px'; break;
-        case 'bottom-center': el.style.bottom = '80px'; el.style.left = '50%'; el.style.transform = 'translateX(-50%)'; break;
-        case 'center': el.style.top = '50%'; el.style.left = '50%'; el.style.transform = 'translate(-50%, -50%)'; break;
+        case 'bottom-center': el.style.bottom = '80px'; el.style.left = '50%'; transformStr = 'translateX(-50%)'; break;
+        case 'center': el.style.top = '50%'; el.style.left = '50%'; transformStr = 'translate(-50%, -50%)'; break;
       }
+      
+      el.style.transform = transformStr;
     }
 
     function applyConfig(config) {
@@ -117,6 +131,7 @@
       const clock = document.getElementById('countdown-widget'); 
       clock.style.display = config.clock.show ? 'block' : 'none'; 
       applyPosition(clock, config.clock.pos); 
+      // The scale is safely appended without overriding the bounds protection
       clock.style.transform += ` scale(${config.clock.scale})`; 
       
       const updateIframe = (id, data) => { 
