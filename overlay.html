@@ -10,7 +10,6 @@
     
     .widget { position: absolute; transition: all 0.5s ease; box-sizing: border-box; }
     
-    /* Widget containers physically inject/destroy iframes to prevent loading loops */
     .widget-container { position: absolute; transition: all 0.5s ease; box-sizing: border-box; }
     .widget-container iframe { width: 100%; height: 100%; border: none; background: transparent !important; overflow: hidden; }
     
@@ -52,7 +51,6 @@
 </head>
 <body>
   
-  <!-- Dynamic Element Wrappers: The JS creates/destroys iframes in here -->
   <div id="emote-wall-container" class="widget-container" style="display:none; z-index: 50;"></div>
   <div id="band-effects-container" class="widget-container" style="display:none; z-index: 55;"></div>
   <div id="dice-of-doom-container" class="widget-container" style="display:none; z-index: 60;"></div>
@@ -114,15 +112,13 @@
     function applyConfig(config) {
       if (!config) return;
       
-      // PERMANENT UPTIME CACHE: Saves state so overlay survives Evmux refreshes automatically
-      localStorage.setItem('extralife_overlay_cache', JSON.stringify(config));
+      try { localStorage.setItem('extralife_overlay_cache', JSON.stringify(config)); } catch(e) {}
 
       const clock = document.getElementById('countdown-widget'); 
       clock.style.display = config.clock.show ? 'block' : 'none'; 
       applyPosition(clock, config.clock.pos); 
       clock.style.transform += ` scale(${config.clock.scale})`; 
       
-      // DOM DESTRUCTION FIX: Fully removes the iframe from existence to kill Chromium loading spinners
       const updateIframe = (id, data) => { 
         const container = document.getElementById(id + '-container');
         if (!container) return;
@@ -140,7 +136,7 @@
           if (iframe.getAttribute('src') !== data.url) iframe.setAttribute('src', data.url);
         } else {
           container.style.display = 'none';
-          container.innerHTML = ''; // Destroys the browser object
+          container.innerHTML = ''; 
         }
       };
       
@@ -160,13 +156,19 @@
       fetchExtraLifeData(); 
     }
 
-    // BOOT SEQUENCE: Automatically loads last known layout on start
     window.addEventListener('load', () => {
-      const cached = localStorage.getItem('extralife_overlay_cache');
-      if (cached) {
-        try { applyConfig(JSON.parse(cached)); } catch(e) {}
-      } else {
-        // Safe default if dashboard has never been connected
+      let configApplied = false;
+      try {
+        const cached = localStorage.getItem('extralife_overlay_cache');
+        if (cached) {
+          applyConfig(JSON.parse(cached));
+          configApplied = true;
+        }
+      } catch(e) {
+        console.warn("Evmux restricted local cache. Loading default overlay.");
+      }
+      
+      if (!configApplied) {
         applyConfig({
           clock: { show: true, pos: 'top-right', scale: 1 },
           ticker: { show: true, showProgressBar: true, customText: '' },
@@ -227,6 +229,8 @@
       fetchExtraLifeData(); 
     });
 
+    let globalAudioCtx = null;
+
     function fireConfetti() {
       const container = document.getElementById('confetti-container'); 
       const emojis = ['🎉', '💸', '✨', '🪙', '🎮', '⚔️'];
@@ -240,16 +244,29 @@
         container.appendChild(el); 
         setTimeout(() => el.remove(), 5000); 
       }
+      
       if (soundsEnabled) { 
         try { 
-          const ctx=new(window.AudioContext||window.webkitAudioContext)(),osc=ctx.createOscillator(),g=ctx.createGain();
-          osc.type='triangle';osc.connect(g);g.connect(ctx.destination);
-          osc.frequency.setValueAtTime(440,ctx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(880,ctx.currentTime+0.5);
-          g.gain.setValueAtTime(0.2,ctx.currentTime);
-          g.gain.exponentialRampToValueAtTime(0.00001,ctx.currentTime+1);
-          osc.start();osc.stop(ctx.currentTime+1); 
-        } catch(e){} 
+          if (!globalAudioCtx) {
+            globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          }
+          const osc = globalAudioCtx.createOscillator();
+          const g = globalAudioCtx.createGain();
+          osc.type = 'triangle';
+          osc.connect(g);
+          g.connect(globalAudioCtx.destination);
+          
+          const now = globalAudioCtx.currentTime;
+          osc.frequency.setValueAtTime(440, now);
+          osc.frequency.exponentialRampToValueAtTime(880, now + 0.5);
+          g.gain.setValueAtTime(0.2, now);
+          g.gain.exponentialRampToValueAtTime(0.00001, now + 1);
+          
+          osc.start(now);
+          osc.stop(now + 1); 
+        } catch(e) {
+          console.warn("Audio context restricted by browser.");
+        } 
       }
     }
 
@@ -317,6 +334,7 @@
     fetchExtraLifeData(); 
     setInterval(processQueue, 1000);
 
+    // PIXEL FIGHTER ANIMATION LOGIC
     const ctx1 = document.getElementById('fight-canvas-1').getContext('2d');
     const ctx2 = document.getElementById('fight-canvas-2').getContext('2d');
     const ARC_DATA = [ { trap: 'mimic', tColor: 'white', boss: 'slime', bColor: 'rgba(0, 255, 100, 0.8)', eColor: 'black' }, { trap: 'bomb', tColor: 'orange', boss: 'eye', bColor: 'white', eColor: 'blue' }, { trap: 'ghost', tColor: 'rgba(200, 200, 255, 0.8)', boss: 'specter', bColor: 'rgba(200, 200, 255, 0.8)', eColor: 'black' }, { trap: 'snake', tColor: 'green', boss: 'spider', bColor: '#333', eColor: '#FF5555' }, { trap: 'swarm', tColor: 'black', boss: 'golem', bColor: '#777', eColor: 'cyan' }, { trap: 'elemental', tColor: 'red', boss: 'dragon', bColor: '#A00', eColor: 'yellow' }, { trap: 'elemental', tColor: 'purple', boss: 'slime', bColor: 'rgba(150, 0, 200, 0.8)', eColor: 'lime' }, { trap: 'elemental', tColor: 'cyan', boss: 'golem', bColor: '#AADDFF', eColor: 'blue' }, { trap: 'projectile', tColor: 'red', boss: 'eye', bColor: '#555', eColor: 'red' }, { trap: 'snake', tColor: 'purple', boss: 'spider', bColor: 'purple', eColor: 'pink' }, { trap: 'swarm', tColor: '#EDC9AF', boss: 'dragon', bColor: '#EDC9AF', eColor: 'orange' }, { trap: 'elemental', tColor: 'yellow', boss: 'specter', bColor: 'rgba(255, 255, 100, 0.8)', eColor: 'white' }, { trap: 'mimic', tColor: 'red', boss: 'spider', bColor: 'white', eColor: 'red' }, { trap: 'ghost', tColor: 'rgba(255, 50, 50, 0.8)', boss: 'specter', bColor: 'rgba(255, 50, 50, 0.8)', eColor: 'yellow' }, { trap: 'projectile', tColor: 'magenta', boss: 'golem', bColor: 'magenta', eColor: 'white' }, { trap: 'bomb', tColor: 'purple', boss: 'eye', bColor: 'black', eColor: 'purple' }, { trap: 'elemental', tColor: 'lime', boss: 'dragon', bColor: 'lime', eColor: 'green' }, { trap: 'projectile', tColor: 'silver', boss: 'golem', bColor: '#444', eColor: 'red' }, { trap: 'mimic', tColor: 'black', boss: 'slime', bColor: 'rgba(255, 50, 0, 0.8)', eColor: 'yellow' }, { trap: 'elemental', tColor: 'cyan', boss: 'dragon', bColor: 'cyan', eColor: 'white' }, { trap: 'swarm', tColor: 'white', boss: 'spider', bColor: '#DDD', eColor: 'black' }, { trap: 'bomb', tColor: 'gray', boss: 'slime', bColor: 'rgba(139, 69, 19, 0.8)', eColor: 'black' }, { trap: 'swarm', tColor: '#222', boss: 'specter', bColor: 'rgba(50, 50, 50, 0.8)', eColor: 'red' }, { trap: 'elemental', tColor: 'gold', boss: 'dragon', bColor: '#FFD700', eColor: 'white' } ];
