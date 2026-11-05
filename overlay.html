@@ -49,10 +49,10 @@
 </head>
 <body>
   
-  <!-- Static iframes prevent Evmux from assuming the page is still loading -->
-  <iframe id="emote-wall" class="widget" allowtransparency="true" style="display:none; z-index: 50;"></iframe>
-  <iframe id="band-effects" class="widget" allowtransparency="true" style="display:none; z-index: 55;"></iframe>
-  <iframe id="dice-of-doom" class="widget" allowtransparency="true" style="display:none; z-index: 60;"></iframe>
+  <!-- NATIVE BROWSER COMMAND: 'about:blank' tricks Chromium into marking the iframe as fully loaded instantly -->
+  <iframe id="emote-wall" class="widget" src="about:blank" allowtransparency="true" style="display:none; z-index: 50;"></iframe>
+  <iframe id="band-effects" class="widget" src="about:blank" allowtransparency="true" style="display:none; z-index: 55;"></iframe>
+  <iframe id="dice-of-doom" class="widget" src="about:blank" allowtransparency="true" style="display:none; z-index: 60;"></iframe>
 
   <div id="countdown-widget" class="widget">
     <div class="cd-label">EXTRA LIFE MARATHON</div>
@@ -117,7 +117,6 @@
       applyPosition(clock, config.clock.pos); 
       clock.style.transform += ` scale(${config.clock.scale})`; 
       
-      // CSS Toggle only: No DOM mutation means no infinite loading spinners
       const updateIframe = (id, data) => { 
         const el = document.getElementById(id);
         if (!el) return;
@@ -125,12 +124,15 @@
         if (data && data.show && data.url && data.url.trim() !== "") {
           el.style.display = 'block';
           applyPosition(el, data.pos, data.width, data.height);
-          // Only change the URL if it is different, stopping unnecessary reloads
           if (el.getAttribute('src') !== data.url) {
             el.setAttribute('src', data.url);
           }
         } else {
           el.style.display = 'none';
+          // Force it back to a resolved state when hidden
+          if (el.getAttribute('src') !== 'about:blank') {
+            el.setAttribute('src', 'about:blank');
+          }
         }
       };
       
@@ -178,8 +180,9 @@
     
     client.on('connect', () => { 
       client.subscribe(topicName); 
-      // Because we now use EMQX retained messages, the broker will automatically push the exact
-      // saved layout config to this overlay the instant it connects, without needing request_sync.
+      // RESTORED: As soon as a new Evmux scene loads this overlay, it explicitly shouts 
+      // to your open Dashboard to beam over the settings.
+      client.publish(topicName, JSON.stringify({ type: 'request_sync' })); 
     });
 
     client.on('message', (topic, message) => {
@@ -329,7 +332,6 @@
     fetchExtraLifeData(); 
     setInterval(processQueue, 1000);
 
-    // PIXEL FIGHTER ANIMATION LOGIC
     const ctx1 = document.getElementById('fight-canvas-1').getContext('2d');
     const ctx2 = document.getElementById('fight-canvas-2').getContext('2d');
     const ARC_DATA = [ { trap: 'mimic', tColor: 'white', boss: 'slime', bColor: 'rgba(0, 255, 100, 0.8)', eColor: 'black' }, { trap: 'bomb', tColor: 'orange', boss: 'eye', bColor: 'white', eColor: 'blue' }, { trap: 'ghost', tColor: 'rgba(200, 200, 255, 0.8)', boss: 'specter', bColor: 'rgba(200, 200, 255, 0.8)', eColor: 'black' }, { trap: 'snake', tColor: 'green', boss: 'spider', bColor: '#333', eColor: '#FF5555' }, { trap: 'swarm', tColor: 'black', boss: 'golem', bColor: '#777', eColor: 'cyan' }, { trap: 'elemental', tColor: 'red', boss: 'dragon', bColor: '#A00', eColor: 'yellow' }, { trap: 'elemental', tColor: 'purple', boss: 'slime', bColor: 'rgba(150, 0, 200, 0.8)', eColor: 'lime' }, { trap: 'elemental', tColor: 'cyan', boss: 'golem', bColor: '#AADDFF', eColor: 'blue' }, { trap: 'projectile', tColor: 'red', boss: 'eye', bColor: '#555', eColor: 'red' }, { trap: 'snake', tColor: 'purple', boss: 'spider', bColor: 'purple', eColor: 'pink' }, { trap: 'swarm', tColor: '#EDC9AF', boss: 'dragon', bColor: '#EDC9AF', eColor: 'orange' }, { trap: 'elemental', tColor: 'yellow', boss: 'specter', bColor: 'rgba(255, 255, 100, 0.8)', eColor: 'white' }, { trap: 'mimic', tColor: 'red', boss: 'spider', bColor: 'white', eColor: 'red' }, { trap: 'ghost', tColor: 'rgba(255, 50, 50, 0.8)', boss: 'specter', bColor: 'rgba(255, 50, 50, 0.8)', eColor: 'yellow' }, { trap: 'projectile', tColor: 'magenta', boss: 'golem', bColor: 'magenta', eColor: 'white' }, { trap: 'bomb', tColor: 'purple', boss: 'eye', bColor: 'black', eColor: 'purple' }, { trap: 'elemental', tColor: 'lime', boss: 'dragon', bColor: 'lime', eColor: 'green' }, { trap: 'projectile', tColor: 'silver', boss: 'golem', bColor: '#444', eColor: 'red' }, { trap: 'mimic', tColor: 'black', boss: 'slime', bColor: 'rgba(255, 50, 0, 0.8)', eColor: 'yellow' }, { trap: 'elemental', tColor: 'cyan', boss: 'dragon', bColor: 'cyan', eColor: 'white' }, { trap: 'swarm', tColor: 'white', boss: 'spider', bColor: '#DDD', eColor: 'black' }, { trap: 'bomb', tColor: 'gray', boss: 'slime', bColor: 'rgba(139, 69, 19, 0.8)', eColor: 'black' }, { trap: 'swarm', tColor: '#222', boss: 'specter', bColor: 'rgba(50, 50, 50, 0.8)', eColor: 'red' }, { trap: 'elemental', tColor: 'gold', boss: 'dragon', bColor: '#FFD700', eColor: 'white' } ];
