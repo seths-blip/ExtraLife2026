@@ -9,9 +9,7 @@
     body { margin: 0; overflow: hidden; font-family: 'VT323', monospace; color: #FFF; background: transparent; width: 1920px; height: 1080px; }
     
     .widget { position: absolute; transition: all 0.5s ease; box-sizing: border-box; }
-    
-    .widget-container { position: absolute; transition: all 0.5s ease; box-sizing: border-box; }
-    .widget-container iframe { width: 100%; height: 100%; border: none; background: transparent !important; overflow: hidden; }
+    iframe.widget { background: transparent !important; border: none; overflow: hidden; }
     
     #countdown-widget { background: rgba(0,0,0,0.85); border: 4px solid #D4AF37; padding: 20px; text-align: center; border-radius: 10px; display: none; z-index: 100; }
     .cd-label { font-size: 24px; color: #D4AF37; } 
@@ -51,9 +49,10 @@
 </head>
 <body>
   
-  <div id="emote-wall-container" class="widget-container" style="display:none; z-index: 50;"></div>
-  <div id="band-effects-container" class="widget-container" style="display:none; z-index: 55;"></div>
-  <div id="dice-of-doom-container" class="widget-container" style="display:none; z-index: 60;"></div>
+  <!-- Static iframes prevent Evmux from assuming the page is still loading -->
+  <iframe id="emote-wall" class="widget" allowtransparency="true" style="display:none; z-index: 50;"></iframe>
+  <iframe id="band-effects" class="widget" allowtransparency="true" style="display:none; z-index: 55;"></iframe>
+  <iframe id="dice-of-doom" class="widget" allowtransparency="true" style="display:none; z-index: 60;"></iframe>
 
   <div id="countdown-widget" class="widget">
     <div class="cd-label">EXTRA LIFE MARATHON</div>
@@ -111,7 +110,6 @@
 
     function applyConfig(config) {
       if (!config) return;
-      
       try { localStorage.setItem('extralife_overlay_cache', JSON.stringify(config)); } catch(e) {}
 
       const clock = document.getElementById('countdown-widget'); 
@@ -119,24 +117,20 @@
       applyPosition(clock, config.clock.pos); 
       clock.style.transform += ` scale(${config.clock.scale})`; 
       
+      // CSS Toggle only: No DOM mutation means no infinite loading spinners
       const updateIframe = (id, data) => { 
-        const container = document.getElementById(id + '-container');
-        if (!container) return;
-
+        const el = document.getElementById(id);
+        if (!el) return;
+        
         if (data && data.show && data.url && data.url.trim() !== "") {
-          container.style.display = 'block';
-          applyPosition(container, data.pos, data.width, data.height);
-          
-          let iframe = container.querySelector('iframe');
-          if (!iframe) {
-            iframe = document.createElement('iframe');
-            iframe.allowTransparency = "true";
-            container.appendChild(iframe);
+          el.style.display = 'block';
+          applyPosition(el, data.pos, data.width, data.height);
+          // Only change the URL if it is different, stopping unnecessary reloads
+          if (el.getAttribute('src') !== data.url) {
+            el.setAttribute('src', data.url);
           }
-          if (iframe.getAttribute('src') !== data.url) iframe.setAttribute('src', data.url);
         } else {
-          container.style.display = 'none';
-          container.innerHTML = ''; 
+          el.style.display = 'none';
         }
       };
       
@@ -165,7 +159,7 @@
           configApplied = true;
         }
       } catch(e) {
-        console.warn("Evmux restricted local cache. Loading default overlay.");
+        console.warn("Evmux restricted local cache. Awaiting MQTT push.");
       }
       
       if (!configApplied) {
@@ -184,7 +178,8 @@
     
     client.on('connect', () => { 
       client.subscribe(topicName); 
-      client.publish(topicName, JSON.stringify({ type: 'request_sync' })); 
+      // Because we now use EMQX retained messages, the broker will automatically push the exact
+      // saved layout config to this overlay the instant it connects, without needing request_sync.
     });
 
     client.on('message', (topic, message) => {
@@ -209,7 +204,7 @@
           npTimeout = setTimeout(() => np.classList.remove('active'), 12000);
         }
         if (data.type === 'dice_roll') {
-          const diceFrame = document.querySelector('#dice-of-doom-container iframe');
+          const diceFrame = document.getElementById('dice-of-doom');
           if (diceFrame && diceFrame.contentWindow) diceFrame.contentWindow.postMessage('ROLL_DICE', '*');
         }
       } catch(e) {}
