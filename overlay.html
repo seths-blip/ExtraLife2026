@@ -49,7 +49,6 @@
 </head>
 <body>
   
-  <!-- NATIVE BROWSER COMMAND: 'about:blank' tricks Chromium into marking the iframe as fully loaded instantly -->
   <iframe id="emote-wall" class="widget" src="about:blank" allowtransparency="true" style="display:none; z-index: 50;"></iframe>
   <iframe id="band-effects" class="widget" src="about:blank" allowtransparency="true" style="display:none; z-index: 55;"></iframe>
   <iframe id="dice-of-doom" class="widget" src="about:blank" allowtransparency="true" style="display:none; z-index: 60;"></iframe>
@@ -59,8 +58,9 @@
     <span id="cd-time">00:00:00</span>
   </div>
   
+  <!-- THE FIX: this.onerror=null breaks the infinite loop if the image is missing -->
   <div id="now-playing-widget">
-    <img id="np-art" class="np-art" src="./stream-player/images/image_ef100c.png" alt="Album Art" onerror="this.src='./stream-player/images/image_ef100c.png'">
+    <img id="np-art" class="np-art" src="./stream-player/images/image_ef100c.png" alt="Album Art" onerror="this.onerror=null; this.src='https://upload.wikimedia.org/wikipedia/commons/c/ca/CD-ROM.png';">
     <div class="np-info">
       <span class="np-title" id="np-title">Track</span>
       <span class="np-artist" id="np-artist">Artist</span>
@@ -129,7 +129,6 @@
           }
         } else {
           el.style.display = 'none';
-          // Force it back to a resolved state when hidden
           if (el.getAttribute('src') !== 'about:blank') {
             el.setAttribute('src', 'about:blank');
           }
@@ -160,9 +159,7 @@
           applyConfig(JSON.parse(cached));
           configApplied = true;
         }
-      } catch(e) {
-        console.warn("Evmux restricted local cache. Awaiting MQTT push.");
-      }
+      } catch(e) {}
       
       if (!configApplied) {
         applyConfig({
@@ -180,8 +177,6 @@
     
     client.on('connect', () => { 
       client.subscribe(topicName); 
-      // RESTORED: As soon as a new Evmux scene loads this overlay, it explicitly shouts 
-      // to your open Dashboard to beam over the settings.
       client.publish(topicName, JSON.stringify({ type: 'request_sync' })); 
     });
 
@@ -262,9 +257,7 @@
           
           osc.start(now);
           osc.stop(now + 1); 
-        } catch(e) {
-          console.warn("Audio context restricted by browser.");
-        } 
+        } catch(e) {} 
       }
     }
 
