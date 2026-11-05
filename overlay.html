@@ -7,8 +7,12 @@
   <style>
     :root { --ticker-speed: 35s; }
     body { margin: 0; overflow: hidden; font-family: 'VT323', monospace; color: #FFF; background: transparent; width: 1920px; height: 1080px; }
+    
     .widget { position: absolute; transition: all 0.5s ease; box-sizing: border-box; }
-    iframe.widget { background: transparent !important; border: none; overflow: hidden; }
+    
+    /* Widget containers physically inject/destroy iframes to prevent loading loops */
+    .widget-container { position: absolute; transition: all 0.5s ease; box-sizing: border-box; }
+    .widget-container iframe { width: 100%; height: 100%; border: none; background: transparent !important; overflow: hidden; }
     
     #countdown-widget { background: rgba(0,0,0,0.85); border: 4px solid #D4AF37; padding: 20px; text-align: center; border-radius: 10px; display: none; z-index: 100; }
     .cd-label { font-size: 24px; color: #D4AF37; } 
@@ -48,10 +52,10 @@
 </head>
 <body>
   
-  <!-- Base64 string natively kills Evmux loading spinners when a widget is inactive -->
-  <iframe id="emote-wall" class="widget" allowtransparency="true" src="data:text/html,<html><body style='background:transparent;'></body></html>" style="display:none; z-index: 50;"></iframe>
-  <iframe id="band-effects" class="widget" allowtransparency="true" src="data:text/html,<html><body style='background:transparent;'></body></html>" style="display:none; z-index: 55;"></iframe>
-  <iframe id="dice-of-doom" class="widget" allowtransparency="true" src="data:text/html,<html><body style='background:transparent;'></body></html>" style="display:none; z-index: 60;"></iframe>
+  <!-- Dynamic Element Wrappers: The JS creates/destroys iframes in here -->
+  <div id="emote-wall-container" class="widget-container" style="display:none; z-index: 50;"></div>
+  <div id="band-effects-container" class="widget-container" style="display:none; z-index: 55;"></div>
+  <div id="dice-of-doom-container" class="widget-container" style="display:none; z-index: 60;"></div>
 
   <div id="countdown-widget" class="widget">
     <div class="cd-label">EXTRA LIFE MARATHON</div>
@@ -85,7 +89,6 @@
     let customTickerText = "";
     let soundsEnabled = true, visualEffectsEnabled = true;
     let npTimeout;
-    const blankHtml = "data:text/html,<html><body style='background:transparent;'></body></html>";
 
     function applyPosition(el, pos, width, height) {
       if (!pos) pos = 'top-left'; 
@@ -110,25 +113,38 @@
 
     function applyConfig(config) {
       if (!config) return;
+      
+      // PERMANENT UPTIME CACHE: Saves state so overlay survives Evmux refreshes automatically
+      localStorage.setItem('extralife_overlay_cache', JSON.stringify(config));
+
       const clock = document.getElementById('countdown-widget'); 
       clock.style.display = config.clock.show ? 'block' : 'none'; 
       applyPosition(clock, config.clock.pos); 
       clock.style.transform += ` scale(${config.clock.scale})`; 
       
+      // DOM DESTRUCTION FIX: Fully removes the iframe from existence to kill Chromium loading spinners
       const updateIframe = (id, data) => { 
-        if (!data) return;
-        const el = document.getElementById(id); 
-        if (!el) return;
-        el.style.display = data.show ? 'block' : 'none'; 
-        applyPosition(el, data.pos, data.width, data.height); 
-        if (data.url && data.url.trim() !== "") {
-          if (el.getAttribute('src') !== data.url) el.setAttribute('src', data.url);
+        const container = document.getElementById(id + '-container');
+        if (!container) return;
+
+        if (data && data.show && data.url && data.url.trim() !== "") {
+          container.style.display = 'block';
+          applyPosition(container, data.pos, data.width, data.height);
+          
+          let iframe = container.querySelector('iframe');
+          if (!iframe) {
+            iframe = document.createElement('iframe');
+            iframe.allowTransparency = "true";
+            container.appendChild(iframe);
+          }
+          if (iframe.getAttribute('src') !== data.url) iframe.setAttribute('src', data.url);
         } else {
-          if (el.getAttribute('src') !== blankHtml) el.setAttribute('src', blankHtml);
+          container.style.display = 'none';
+          container.innerHTML = ''; // Destroys the browser object
         }
       };
       
-      updateIframe('emote-wall', config.emoteWall);
+      updateIframe('emote-wall', config.emoteWall); 
       updateIframe('band-effects', config.bandEffects);
       updateIframe('dice-of-doom', config.diceOfDoom);
 
@@ -140,8 +156,26 @@
       soundsEnabled = config.effects.sound; 
       visualEffectsEnabled = config.effects.visual; 
       if (config.targetTime) targetDate = parseInt(config.targetTime);
+      
       fetchExtraLifeData(); 
     }
+
+    // BOOT SEQUENCE: Automatically loads last known layout on start
+    window.addEventListener('load', () => {
+      const cached = localStorage.getItem('extralife_overlay_cache');
+      if (cached) {
+        try { applyConfig(JSON.parse(cached)); } catch(e) {}
+      } else {
+        // Safe default if dashboard has never been connected
+        applyConfig({
+          clock: { show: true, pos: 'top-right', scale: 1 },
+          ticker: { show: true, showProgressBar: true, customText: '' },
+          alerts: { pos: 'center' },
+          effects: { sound: true, visual: true },
+          emoteWall: { show: false }, bandEffects: { show: false }, diceOfDoom: { show: false }
+        });
+      }
+    });
 
     const topicName = `extralife2026/${teamID}/commands`;
     const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt'); 
@@ -173,7 +207,7 @@
           npTimeout = setTimeout(() => np.classList.remove('active'), 12000);
         }
         if (data.type === 'dice_roll') {
-          const diceFrame = document.getElementById('dice-of-doom');
+          const diceFrame = document.querySelector('#dice-of-doom-container iframe');
           if (diceFrame && diceFrame.contentWindow) diceFrame.contentWindow.postMessage('ROLL_DICE', '*');
         }
       } catch(e) {}
