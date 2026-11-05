@@ -206,7 +206,6 @@
     
     client.subscribe(topicName);
 
-    // Added retain parameter. If retain is true, EMQX saves this payload permanently in the cloud.
     function sendPayload(type, payload, retain = false) {
       if (client.connected) {
         client.publish(topicName, JSON.stringify({ type, payload, sender: myClientID }), { retain: retain });
@@ -231,7 +230,7 @@
         const div = document.createElement('div');
         div.className = 'playlist-card';
         div.innerHTML = `
-          <img src="${art}" class="playlist-art" alt="art" onerror="this.src='./stream-player/images/image_ef100c.png'">
+          <img src="${art}" class="playlist-art" alt="art" onerror="this.onerror=null; this.src='https://upload.wikimedia.org/wikipedia/commons/c/ca/CD-ROM.png';">
           <span class="playlist-title">${title}</span>
           <span class="playlist-artist">${artist}</span>
         `;
@@ -266,7 +265,6 @@
         targetTime: document.getElementById('target-time').value ? new Date(document.getElementById('target-time').value).getTime() : null
       };
       
-      // We pass true here so EMQX permanently stores the layout config
       sendPayload('config', config, true);
       localStorage.setItem('extralife_cfg', JSON.stringify(config));
     }
