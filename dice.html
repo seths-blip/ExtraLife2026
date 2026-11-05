@@ -85,14 +85,26 @@ function rollDice() {
   if (isRolling) return;
   isRolling = true;
   
-  // Fade out interactive elements
   document.getElementById('interactive-zone').style.opacity = '0';
   document.getElementById('interactive-zone').style.pointerEvents = 'none';
   
   const scene = document.getElementById('dice-scene');
+  const trajectory = document.getElementById('dice-trajectory');
   scene.style.display = 'block';
   
-  // Strip previous transition, force a render at 0 degrees, then apply new transition
+  // 1. Calculate a random 360-degree starting angle and spawn it far off-screen (150vmax)
+  const angle = Math.random() * Math.PI * 2;
+  const startX = Math.cos(angle) * 150 + 'vmax';
+  const startY = Math.sin(angle) * 150 + 'vmax';
+  
+  // 2. Calculate a slightly randomized landing zone near the center
+  const endX = (Math.random() * 20 - 10) + 'vw';
+  const endY = (Math.random() * 20 - 10) + 'vh';
+  
+  // 3. Strip transitions and warp the dice to the off-screen start position
+  trajectory.style.transition = 'none';
+  trajectory.style.transform = `translate(${startX}, ${startY}) scale(0.2) rotate(${getTrueRandom(-1,1)*180}deg)`;
+  
   d20.style.transition = 'none';
   d20.style.transform = 'rotateX(0deg) rotateY(0deg) rotateZ(0deg)';
   
@@ -101,9 +113,18 @@ function rollDice() {
   const rotX = (getTrueRandom(6, 9) * 360) - targetFace.x;
   const rotY = (getTrueRandom(6, 9) * 360) - targetFace.y;
   
-  // Double requestAnimationFrame ensures Chromium paints the 0deg start frame
+  // 4. Force browser reflow to register the starting frame
+  void d20.offsetWidth;
+  void trajectory.offsetWidth;
+  
+  // 5. Apply the throwing and spinning animations
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
+      // Trajectory Throw (Moves from off-screen to the slightly randomized center)
+      trajectory.style.transition = 'transform 4s cubic-bezier(0.15, 0.85, 0.3, 1)';
+      trajectory.style.transform = `translate(${endX}, ${endY}) scale(1) rotate(0deg)`;
+      
+      // 3D Tumble (Spins the dice itself)
       d20.style.transition = 'transform 4.5s cubic-bezier(0.15, 0.85, 0.3, 1)';
       d20.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg) rotateZ(${getTrueRandom(6,9)*360}deg)`;
     });
@@ -119,6 +140,7 @@ function rollDice() {
       document.getElementById('interactive-zone').style.opacity = '1';
       document.getElementById('interactive-zone').style.pointerEvents = 'auto';
       d20.style.transform = 'none';
+      trajectory.style.transform = 'none';
       isRolling = false;
     }, 4500);
   }, 4500);
