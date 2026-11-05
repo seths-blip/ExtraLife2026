@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dice of Doom</title>
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<style>
+:root {
+  --bg-color: #050000;
+  --skull-color: #ff003c;
+  --skull-glow: #ff0000;
+  --dice-center-color: #2a0005;
+  --dice-edge-color: #050000;
+  --dice-border: #ff003c;
+  --text-color: #ffffff;
+  --text-glow: #ff003c;
+  --result-glow: #ff0000;
+}
+body {
+  margin: 0;
+  overflow: hidden;
+  background: radial-gradient(circle at center, #2a0000 0%, var(--bg-color) 70%);
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Impact', sans-serif;
+  color: white;
+  user-select: none;
+}
+#interactive-zone { position: absolute; z-index: 20; display: flex; flex-direction: column; align-items: center; gap: 40px; }
+#skull { width: 300px; height: 300px; fill: var(--skull-color); filter: drop-shadow(0px 0px 15px var(--skull-glow)); cursor: pointer; }
+#action-btn { background: rgba(0, 0, 0, 0.7); border: 2px solid var(--skull-glow); border-radius: 5px; padding: 15px 50px; font-size: 36px; letter-spacing: 6px; color: #fff; cursor: pointer; }
+#dice-scene { width: 150px; height: 150px; perspective: 1200px; position: absolute; z-index: 10; display: none; }
+#dice-trajectory { width: 100%; height: 100%; }
+#d20 { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 4.5s cubic-bezier(0.15, 0.85, 0.3, 1); }
+.face { position: absolute; width: 150px; height: 129.9px; transform-origin: 50% 66.666%; backface-visibility: hidden; }
+.face svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: visible; }
+.face polygon { stroke: var(--dice-border); stroke-width: 4px; stroke-linejoin: round; }
+.text-node { position: absolute; top: 66.666%; left: 50%; transform: translate(-50%, -50%); color: var(--text-color); font-size: 42px; font-weight: bold; }
+.down-text { transform: translate(-50%, -50%) rotateZ(180deg); }
+#result-text { position: absolute; top: 10%; width: 100%; text-align: center; font-size: 140px; letter-spacing: 12px; opacity: 0; transition: all 0.4s ease; z-index: 30; background: rgba(0, 0, 0, 0.6); }
+.show-result { opacity: 1 !important; }
+</style>
+</head>
+<body id="bg-body">
+<div id="dice-scene"><div id="dice-trajectory"><div id="d20"></div></div></div>
+<div id="interactive-zone">
+  <svg id="skull" viewBox="0 0 512 512"><path d="M256 0C114.6 0 0 100.3 0 224c0 70.1 36.9 132.6 94.5 173.7 9.6 6.9 15.2 18.1 13.5 29.9l-9.4 66.2c-1.4 9.6 6 18.2 15.7 18.2H192v-50c0-14.3 11.7-26 26-26h76c14.3 0 26 11.7 26 26v50h77.7c9.7 0 17.1-8.6 15.7-18.2l-9.4-66.2c-1.7-11.7 3.8-23 13.5-29.9C475.1 356.6 512 294.1 512 224 512 100.3 397.4 0 256 0zM150.2 272c-26.6 0-48.2-21.6-48.2-48.2s21.6-48.2 48.2-48.2 48.2 21.6 48.2 48.2-21.6 48.2-48.2 48.2zm211.6 0c-26.6 0-48.2-21.6-48.2-48.2s21.6-48.2 48.2-48.2 48.2 21.6 48.2 48.2-21.6 48.2-48.2 48.2z"/></svg>
+  <div id="action-btn">ROLL TO SURVIVE</div>
+</div>
+<div id="result-text">DOOM</div>
+
+<script>
+const isOverlay = window.self !== window.top;
+if (isOverlay) document.getElementById('bg-body').style.setProperty('background', 'transparent', 'important');
+
+function getTrueRandom(min, max) {
+  const array = new Uint32Array(1);
+  window.crypto.getRandomValues(array);
+  return Math.floor((array[0] / 4294967295) * (max - min + 1)) + min;
+}
+
+const d20 = document.getElementById('d20');
+const facesData = [];
+const Z_OFFSET = 113.4;
+const top5 = [20, 2, 14, 8, 11], midUp5 = [18, 4, 16, 6, 12], midLow5 = [15, 9, 3, 17, 5], bottom5 = [13, 10, 1, 19, 7];
+for(let i=0; i<5; i++) facesData.push({ n: top5[i], y: i*72, x: 52.6226, flip: false });
+for(let i=0; i<5; i++) facesData.push({ n: midUp5[i], y: i*72, x: 10.8123, flip: true });
+for(let i=0; i<5; i++) facesData.push({ n: midLow5[i], y: i*72 + 36, x: -10.8123, flip: false });
+for(let i=0; i<5; i++) facesData.push({ n: bottom5[i], y: i*72 + 36, x: -52.6226, flip: true });
+
+facesData.forEach(f => {
+  const face = document.createElement('div');
+  face.className = 'face';
+  face.style.transform = `rotateY(${f.y}deg) rotateX(${f.x}deg) translateZ(${Z_OFFSET}px) ${f.flip ? 'rotateZ(180deg)' : ''}`;
+  face.innerHTML = `<svg viewBox="0 0 150 129.9"><polygon points="75,0 0,129.9 150,129.9" fill="#1e0004" /></svg><span class="text-node ${f.flip ? 'down-text' : ''}">${f.n}</span>`;
+  d20.appendChild(face);
+});
+
+let isRolling = false;
+function rollDice() {
+  if (isRolling) return;
+  isRolling = true;
+  document.getElementById('interactive-zone').style.display = 'none';
+  document.getElementById('dice-scene').style.display = 'block';
+  
+  const finalNum = getTrueRandom(1, 20);
+  const targetFace = facesData.find(f => f.n === finalNum);
+  const rotX = (getTrueRandom(6, 9) * 360) - targetFace.x;
+  const rotY = (getTrueRandom(6, 9) * 360) - targetFace.y;
+  
+  d20.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg) rotateZ(${getTrueRandom(6,9)*360}deg)`;
+  
+  setTimeout(() => {
+    const res = document.getElementById('result-text');
+    res.innerText = finalNum === 20 ? "NATURAL 20!" : (finalNum === 1 ? "CRITICAL FAIL!" : "ROLLED " + finalNum);
+    res.classList.add('show-result');
+    setTimeout(() => {
+      res.classList.remove('show-result');
+      document.getElementById('dice-scene').style.display = 'none';
+      document.getElementById('interactive-zone').style.display = 'flex';
+      d20.style.transform = 'none';
+      isRolling = false;
+    }, 4500);
+  }, 4500);
+}
+
+document.getElementById('skull').addEventListener('click', rollDice);
+document.getElementById('action-btn').addEventListener('click', rollDice);
+
+window.addEventListener('message', (e) => { if (e.data === 'ROLL_DICE') rollDice(); });
+
+const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
+client.on('connect', () => client.subscribe('extralife2026/74089/commands'));
+client.on('message', (t, m) => {
+  try { if (JSON.parse(m.toString()).type === 'dice_roll') rollDice(); } catch(e) {}
+});
+</script>
+</body>
+</html>

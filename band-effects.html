@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { margin: 0; overflow: hidden; background: transparent; }
+
+    /* TIER 1: LIGHTERS */
+    .lighter {
+      position: absolute;
+      bottom: -20px;
+      font-size: 80px;
+      transform-origin: bottom center;
+      animation: sway 3s ease-in-out infinite alternate;
+      z-index: 10;
+    }
+    @keyframes sway {
+      0% { transform: rotate(-15deg); }
+      100% { transform: rotate(15deg); }
+    }
+
+    /* TIER 3: STAGE LIGHTS */
+    .stage-light {
+      position: absolute;
+      top: -150px;
+      width: 250px;
+      height: 1500px;
+      transform-origin: top center;
+      mix-blend-mode: screen; /* Prevents harsh white blowouts on multiple overlapping lights */
+      z-index: 50;
+      border-radius: 50%;
+      filter: blur(25px);
+    }
+  </style>
+</head>
+<body>
+
+  <script>
+    // ==========================================
+    // 1. CONFIGURATION
+    // ==========================================
+    const teamID = "74089"; // Insert your numerical Extra Life Team ID
+    
+    // CHANGE THIS TO FALSE WHEN READY TO GO LIVE IN EVMUX
+    const TEST_MODE = false; 
+
+    let seenDonationIDs = [];
+    let isFirstLoad = true;
+    
+    // SMART QUEUE VARIABLES
+    let fxQueue = [];
+    let isPlayingFx = false;
+
+    // ==========================================
+    // 2. TIER 1: THE LIGHTER CROWD ($10 - $24)
+    // ==========================================
+    function spawnLighter() {
+      const lighter = document.createElement('div');
+      lighter.innerText = '🔥';
+      lighter.className = 'lighter';
+      
+      // Random placement across the 1920 width
+      const randomX = (Math.random() * (window.innerWidth - 150)) + 50;
+      lighter.style.left = randomX + 'px';
+      lighter.style.animationDuration = (2.5 + Math.random()) + 's';
+      
+      document.body.appendChild(lighter);
+
+      setTimeout(() => {
+        lighter.style.transition = "opacity 2s";
+        lighter.style.opacity = 0;
+        setTimeout(() => lighter.remove(), 2000);
+      }, 45000); // Lighters stick around for 45s to build a crowd
+    }
+
+    // ==========================================
+    // 3. TIER 2: THE CONFETTI CANNON ($25 - $49)
+    // ==========================================
+    function popConfettiCannon() {
+      const colors = ['#FF00FF', '#00FFFF', '#00FF00', '#FFFF00', '#FFFFFF'];
+      
+      // Randomize launch origin across the bottom 80% of the screen
+      const launchStartX = (Math.random() * (window.innerWidth * 0.8)) + (window.innerWidth * 0.1);
+
+      for (let i = 0; i < 75; i++) {
+        const conf = document.createElement('div');
+        conf.style.position = 'absolute';
+        conf.style.width = '15px';
+        conf.style.height = '15px';
+        conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        conf.style.bottom = '0px';
+        conf.style.zIndex = '40';
+        document.body.appendChild(conf);
+
+        let x = launchStartX;
+        let y = window.innerHeight;
+        const vx = (Math.random() - 0.5) * 40; 
+        let vy = (Math.random() * -30) - 15;   
+        const gravity = 0.9;
+
+        function animate() {
+          vy += gravity;
+          x += vx;
+          y += vy;
+          conf.style.left = x + 'px';
+          conf.style.top = y + 'px';
+          conf.style.transform = `rotate(${y}deg)`;
+
+          if (y < window.innerHeight + 50) {
+            requestAnimationFrame(animate);
+          } else {
+            conf.remove();
+          }
+        }
+        requestAnimationFrame(animate);
+      }
+    }
+
+    // ==========================================
+    // 4. TIER 3: THE STAGE LIGHTS ($50+)
+    // ==========================================
+    function triggerStageLights() {
+      const colors = ['rgba(255,0,0,0.6)', 'rgba(0,255,0,0.6)', 'rgba(0,100,255,0.6)', 'rgba(255,0,255,0.6)'];
+      colors.sort(() => Math.random() - 0.5);
+
+      for (let i = 0; i < 4; i++) {
+        const light = document.createElement('div');
+        light.className = 'stage-light';
+        light.style.background = `linear-gradient(to bottom, ${colors[i]}, transparent)`;
+        
+        // Randomize placement within its quarter of the screen to prevent perfect stacking
+        const quadrantWidth = window.innerWidth / 4;
+        const randomOffset = Math.random() * (quadrantWidth - 100);
+        light.style.left = (quadrantWidth * i) + randomOffset + 'px';
+        
+        document.body.appendChild(light);
+
+        let angle = Math.random() * Math.PI; 
+        let speed = (Math.random() * 0.04) + 0.03;
+        
+        let animateLight = setInterval(() => {
+          angle += speed;
+          let rotation = Math.sin(angle) * 55; 
+          light.style.transform = `rotate(${rotation}deg)`;
+        }, 30);
+
+        setTimeout(() => {
+          light.style.transition = "opacity 1.5s";
+          light.style.opacity = 0;
+          setTimeout(() => {
+            clearInterval(animateLight);
+            light.remove();
+          }, 1500);
+        }, 13500);
+      }
+    }
+
+    // ==========================================
+    // 5. THE DYNAMIC "SMART QUEUE" (NO DROPS)
+    // ==========================================
+    function processFxQueue() {
+      if (fxQueue.length === 0) {
+        isPlayingFx = false;
+        return;
+      }
+      
+      isPlayingFx = true;
+
+      // Grab the next donation amount in line
+      const currentAmount = fxQueue.shift();
+
+      if (currentAmount >= 20) triggerStageLights();
+      else if (currentAmount >= 10) popConfettiCannon();
+      else if (currentAmount >= 5) spawnLighter();
+
+      // DYNAMIC SPEED SHIFTING
+      let nextDelay = 2500; 
+      
+      if (fxQueue.length > 20) {
+        nextDelay = 400; // Hyper-speed overlap for massive raids
+      } else if (fxQueue.length > 10) {
+        nextDelay = 800; // Very fast pace
+      } else if (fxQueue.length > 5) {
+        nextDelay = 1500; // Jogging pace
+      }
+
+      setTimeout(processFxQueue, nextDelay);
+    }
+
+    // ==========================================
+    // 6. LIVE API LOGIC
+    // ==========================================
+    async function fetchExtraLifeData() {
+      if (teamID === "YOUR_TEAM_ID_HERE" && !TEST_MODE) return;
+      try {
+        const donRes = await fetch(`https://extralife.donordrive.com/api/teams/${teamID}/donations`);
+        const donations = await donRes.json();
+
+        // Process from oldest to newest to maintain chronological queue
+        for (let i = donations.length - 1; i >= 0; i--) {
+          let don = donations[i];
+          if (!seenDonationIDs.includes(don.donationID)) {
+            seenDonationIDs.push(don.donationID);
+            
+            if (!isFirstLoad) {
+              fxQueue.push(don.amount);
+            }
+          }
+        }
+        
+        if (fxQueue.length > 0 && !isPlayingFx) {
+          processFxQueue();
+        }
+
+        isFirstLoad = false;
+      } catch (err) { console.error(err); }
+    }
+
+    // ==========================================
+    // 7. 🧪 TEST MODE SIMULATION
+    // ==========================================
+    function runTestSimulation() {
+      isFirstLoad = false; 
+      
+      setTimeout(() => {
+        console.log("Simulating massive 30-person donation bomb...");
+        
+        // Simulates 15 lighters, 10 confetti cannons, and 5 stage light effects hitting instantly
+        for (let i = 0; i < 15; i++) fxQueue.push(10); 
+        for (let i = 0; i < 10; i++) fxQueue.push(25);  
+        for (let i = 0; i < 5; i++) fxQueue.push(50);  
+        
+        if (!isPlayingFx) processFxQueue();
+      }, 2000);
+    }
+
+    // ==========================================
+    // INITIALIZATION
+    // ==========================================
+    if (TEST_MODE) {
+      runTestSimulation();
+    } else {
+      setInterval(fetchExtraLifeData, 15000); 
+      fetchExtraLifeData();
+    }
+  </script>
+</body>
+</html>
