@@ -76,7 +76,8 @@
       <div class="control-group">
         <label>Custom Message</label>
         <div class="input-box">
-          <input type="text" id="ticker-custom" placeholder="e.g. INCENTIVE: BEAN BOOZLED!" onchange="updateConfig()">
+          <!-- onchange removed so typing here doesn't trigger a global layout update -->
+          <input type="text" id="ticker-custom" placeholder="e.g. INCENTIVE: BEAN BOOZLED!">
         </div>
       </div>
       <div class="control-group">
@@ -267,14 +268,18 @@
         emoteWall: { show: document.getElementById('emote-show').checked, url: document.getElementById('emote-url').value, pos: 'top-left', width: 1920, height: 1080 },
         bandEffects: { show: document.getElementById('band-show').checked, url: document.getElementById('band-url').value, pos: 'top-left', width: 1920, height: 1080 },
         diceOfDoom: { show: document.getElementById('dice-show').checked, url: "./dice.html", pos: 'top-left', width: 1920, height: 1080 },
-        ticker: { show: document.getElementById('ticker-show').checked, showProgressBar: document.getElementById('ticker-bar').checked, customText: document.getElementById('ticker-custom').value },
+        // Custom text removed from persistent network config so it doesn't get "stuck"
+        ticker: { show: document.getElementById('ticker-show').checked, showProgressBar: document.getElementById('ticker-bar').checked },
         alerts: { pos: document.getElementById('alert-pos').value },
         effects: { sound: document.getElementById('effect-sound').checked, visual: document.getElementById('effect-visual').checked },
         targetTime: document.getElementById('target-time').value ? new Date(document.getElementById('target-time').value).getTime() : null
       };
       
       sendPayload('config', config, true);
-      localStorage.setItem('extralife_cfg', JSON.stringify(config));
+      
+      // Save local text independently just so your dashboard remembers what you typed
+      const localState = { ...config, localTickerText: document.getElementById('ticker-custom').value };
+      localStorage.setItem('extralife_cfg', JSON.stringify(localState));
     }
 
     function syncUIFromNetwork(cfg) {
@@ -284,7 +289,7 @@
         if (cfg.emoteWall) { document.getElementById('emote-show').checked = cfg.emoteWall.show; document.getElementById('emote-url').value = cfg.emoteWall.url; }
         if (cfg.bandEffects) { document.getElementById('band-show').checked = cfg.bandEffects.show; document.getElementById('band-url').value = cfg.bandEffects.url; }
         if (cfg.diceOfDoom) { document.getElementById('dice-show').checked = cfg.diceOfDoom.show; }
-        if (cfg.ticker) { document.getElementById('ticker-show').checked = cfg.ticker.show; document.getElementById('ticker-bar').checked = cfg.ticker.showProgressBar; document.getElementById('ticker-custom').value = cfg.ticker.customText || ""; }
+        if (cfg.ticker) { document.getElementById('ticker-show').checked = cfg.ticker.show; document.getElementById('ticker-bar').checked = cfg.ticker.showProgressBar; }
         if (cfg.alerts) document.getElementById('alert-pos').value = cfg.alerts.pos;
         if (cfg.effects) { document.getElementById('effect-sound').checked = cfg.effects.sound; document.getElementById('effect-visual').checked = cfg.effects.visual; }
         if (cfg.targetTime) {
@@ -297,7 +302,10 @@
     }
 
     function stageCustomText() {
+      // Button manually fires the stage_ticker payload with exactly what is in the box
       sendPayload('stage_ticker', { text: document.getElementById('ticker-custom').value, loops: parseInt(document.getElementById('ticker-loops').value) || 1 });
+      // Update local storage so if you refresh, your typed text is still there
+      updateConfig();
     }
 
     function sendManualAlert() {
@@ -311,7 +319,13 @@
       .catch(() => renderPlaylist(playlistTracks));
 
     const saved = localStorage.getItem('extralife_cfg');
-    if (saved) { try { syncUIFromNetwork(JSON.parse(saved)); } catch(e) {} }
+    if (saved) { 
+      try { 
+        const parsed = JSON.parse(saved);
+        syncUIFromNetwork(parsed); 
+        if(parsed.localTickerText) document.getElementById('ticker-custom').value = parsed.localTickerText;
+      } catch(e) {} 
+    }
 
     const tInput = document.getElementById('target-time');
     if (!tInput.value) {
