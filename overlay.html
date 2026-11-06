@@ -38,7 +38,6 @@
     #progress-bar-bg { position: absolute; bottom: 54px; left: 0; width: 100%; height: 6px; background: rgba(0,0,0,0.5); z-index: 1001; display: none; }
     #progress-bar-fill { width: 0%; height: 100%; background: #55FF55; box-shadow: 0 0 10px #55FF55; transition: width 2s ease-in-out; }
 
-    /* CSS Transform removed here so it doesn't fight the JavaScript boundaries */
     #alert-wrapper { position: absolute; z-index: 9999; transition: all 0.5s ease; }
     #alert-box { display: none; background-color: #8B0000; border: 4px solid #D4AF37; padding: 15px 30px; font-size: 36px; text-align: center; text-shadow: 2px 2px #000; box-shadow: 0px 0px 15px #D4AF37; animation: popup 0.5s ease-out; white-space: nowrap; }
     @keyframes popup { 0% { transform: translateY(50px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
@@ -86,7 +85,6 @@
     const teamID = "74089"; 
     let targetDate = new Date().getTime() + (24 * 60 * 60 * 1000); 
     let stagedTicker = { pending: false, active: false, text: "", loops: 0, pendingText: "", pendingLoops: 0 };
-    let customTickerText = "";
     let soundsEnabled = true, visualEffectsEnabled = true;
     let npTimeout;
 
@@ -103,7 +101,6 @@
       let originX = pos.includes('left') ? 'left' : (pos.includes('right') ? 'right' : 'center');
       el.style.transformOrigin = `${originY} ${originX}`;
 
-      // Bounding Box Fix: Prevents 1920x1080 full-screen iframes from being padded 50px off-screen
       if (width == 1920 && height == 1080) {
         el.style.top = '0px';
         el.style.left = '0px';
@@ -131,7 +128,6 @@
       const clock = document.getElementById('countdown-widget'); 
       clock.style.display = config.clock.show ? 'block' : 'none'; 
       applyPosition(clock, config.clock.pos); 
-      // The scale is safely appended without overriding the bounds protection
       clock.style.transform += ` scale(${config.clock.scale})`; 
       
       const updateIframe = (id, data) => { 
@@ -158,7 +154,6 @@
 
       document.getElementById('ticker-wrap').style.display = config.ticker.show ? 'flex' : 'none'; 
       document.getElementById('progress-bar-bg').style.display = config.ticker.showProgressBar ? 'block' : 'none';
-      customTickerText = config.ticker.customText || "";
       
       applyPosition(document.getElementById('alert-wrapper'), config.alerts.pos);
       soundsEnabled = config.effects.sound; 
@@ -181,7 +176,7 @@
       if (!configApplied) {
         applyConfig({
           clock: { show: true, pos: 'top-right', scale: 1 },
-          ticker: { show: true, showProgressBar: true, customText: '' },
+          ticker: { show: true, showProgressBar: true },
           alerts: { pos: 'center' },
           effects: { sound: true, visual: true },
           emoteWall: { show: false }, bandEffects: { show: false }, diceOfDoom: { show: false }
@@ -228,16 +223,19 @@
       } catch(e) {}
     });
 
+    // BUG FIX: Else-if ensures loops count down properly without skipping a frame
     document.getElementById('main-ticker-track').addEventListener('animationiteration', () => {
       if (stagedTicker.pending) {
         stagedTicker.active = true; 
         stagedTicker.text = stagedTicker.pendingText; 
         stagedTicker.loops = stagedTicker.pendingLoops; 
         stagedTicker.pending = false;
-      }
-      if (stagedTicker.active) {
+      } else if (stagedTicker.active) {
         stagedTicker.loops--; 
-        if (stagedTicker.loops < 0) { stagedTicker.active = false; stagedTicker.text = ""; }
+        if (stagedTicker.loops <= 0) { 
+          stagedTicker.active = false; 
+          stagedTicker.text = ""; 
+        }
       }
       fetchExtraLifeData(); 
     });
@@ -309,10 +307,9 @@
         document.getElementById('progress-bar-fill').style.width = Math.min((raised / goal) * 100, 100) + '%'; 
         
         let str = ""; 
+        // Completely stripped the fallback. It ONLY renders if an active staging loop is running.
         if (stagedTicker.active && stagedTicker.text.trim() !== "") { 
           str += `📢 <span class="green-text">${stagedTicker.text.toUpperCase()}</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `; 
-        } else if (customTickerText.trim() !== "") { 
-          str += `📢 <span class="green-text">${customTickerText.toUpperCase()}</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `; 
         }
         str += `👑 <span class="gold-text">${(tData.name||"Our Guild").toUpperCase()} PROGRESS:</span> $${raised} / $${goal} 👑 &nbsp;&nbsp;&nbsp;&nbsp; 📜 <span class="gold-text">BENEFACTORS:</span> `; 
         dons.slice(0,5).forEach(d => str += `${d.displayName||"Hero"} ($${d.amount}) • `); 
