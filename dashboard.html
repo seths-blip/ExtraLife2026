@@ -9,9 +9,12 @@
     .header { display: flex; justify-content: space-between; align-items: center; max-width: 1400px; margin: 0 auto 20px auto; border-bottom: 2px solid #333; padding-bottom: 15px; }
     .header h1 { margin: 0; color: #D4AF37; font-size: 26px; }
     #status-badge { font-size: 14px; padding: 6px 14px; border-radius: 20px; background: #FF5555; color: white; font-weight: bold; }
-    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px; max-width: 1400px; margin: 0 auto; }
+    
+    /* Reorganized into a tighter 3-column layout */
+    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; max-width: 1400px; margin: 0 auto; }
     .panel { background: #2a2a2a; padding: 18px; border-radius: 10px; border-top: 4px solid #D4AF37; box-shadow: 0 4px 15px rgba(0,0,0,0.3); display: flex; flex-direction: column; }
     .panel h2 { margin-top: 0; color: #FFF; font-size: 18px; border-bottom: 1px solid #444; padding-bottom: 8px; margin-bottom: 12px; }
+    
     .control-group { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 10px; }
     .control-group label { flex: 1; min-width: 110px; font-size: 13px; color: #ccc; font-weight: 500; }
     .input-box { flex: 2; display: flex; gap: 8px; align-items: center; }
@@ -23,7 +26,7 @@
     .btn-special { background: #55FF55; margin-top: 10px; } .btn-special:hover { background: #32CD32; }
     .btn-dice { background: #FF5555; color: #FFF; margin-top: 10px; } .btn-dice:hover { background: #CC0000; }
     
-    #playlist-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; max-height: 220px; overflow-y: auto; background: #1e1e1e; border-radius: 8px; padding: 8px; margin-bottom: 12px; border: 1px solid #444; }
+    #playlist-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; max-height: 180px; overflow-y: auto; background: #1e1e1e; border-radius: 8px; padding: 8px; margin-bottom: 12px; border: 1px solid #444; }
     .playlist-card { background: #333; border-radius: 6px; padding: 6px; text-align: center; cursor: pointer; border: 2px solid transparent; transition: all 0.15s; }
     .playlist-card:hover { background: #444; border-color: #55FF55; transform: translateY(-2px); }
     .playlist-art { width: 100%; aspect-ratio: 1; border-radius: 4px; object-fit: cover; background: #000; margin-bottom: 4px; }
@@ -41,10 +44,11 @@
 
   <div class="dashboard-grid">
     
+    <!-- PANEL 1: CORE OVERLAY -->
     <div class="panel">
-      <h2>⏱️ Clock & Ticker</h2>
+      <h2>⏱️ Core Overlay</h2>
       <div class="control-group">
-        <label>Countdown Clock</label>
+        <label>Clock Position</label>
         <div class="input-box">
           <input type="checkbox" id="clock-show" checked onchange="updateConfig()"> Show
           <select id="clock-pos" onchange="updateConfig()">
@@ -59,7 +63,7 @@
         </div>
       </div>
       <div class="control-group">
-        <label>Scale & Date</label>
+        <label>Scale & Target</label>
         <div class="input-box">
           <input type="number" step="0.1" id="clock-scale" value="1.0" onchange="updateConfig()">
           <input type="datetime-local" id="target-time" onchange="updateConfig()">
@@ -69,15 +73,14 @@
       <div class="control-group">
         <label>Bottom Ticker</label>
         <div class="input-box">
-          <input type="checkbox" id="ticker-show" checked onchange="updateConfig()"> Show
-          <input type="checkbox" id="ticker-bar" checked onchange="updateConfig()"> Bar
+          <input type="checkbox" id="ticker-show" checked onchange="updateConfig()"> Show Ticker
+          <input type="checkbox" id="ticker-bar" checked onchange="updateConfig()"> Progress Bar
         </div>
       </div>
       <div class="control-group">
-        <label>Custom Message</label>
+        <label>Custom Event Msg</label>
         <div class="input-box">
-          <!-- onchange removed so typing here doesn't trigger a global layout update -->
-          <input type="text" id="ticker-custom" placeholder="e.g. INCENTIVE: BEAN BOOZLED!">
+          <input type="text" id="ticker-custom" placeholder="e.g. BEAN BOOZLED SPUN!">
         </div>
       </div>
       <div class="control-group">
@@ -89,17 +92,19 @@
       </div>
     </div>
 
+    <!-- PANEL 2: MEDIA & WIDGETS -->
     <div class="panel">
-      <h2>🎵 Now Playing (Click to Trigger)</h2>
-      <div id="playlist-container"></div>
-      
+      <h2>🎵 Media & Widgets</h2>
       <div class="control-group">
-        <label>Load Custom JSON</label>
+        <label>🎸 Band Effects</label>
         <div class="input-box">
-          <input type="file" id="json-file-input" accept=".json" onchange="loadUserJsonFile(event)">
+          <input type="checkbox" id="band-show" onchange="updateConfig()"> Show Layer
+          <input type="text" id="band-url" value="./band-effects.html" placeholder="./band-effects.html" onchange="updateConfig()">
         </div>
       </div>
-
+      <hr>
+      <div id="playlist-container"></div>
+      
       <div class="control-group">
         <label>Slide Position</label>
         <div class="input-box">
@@ -114,8 +119,6 @@
           </select>
         </div>
       </div>
-
-      <hr>
       <div class="control-group">
         <label>Manual Track</label>
         <div class="input-box">
@@ -126,23 +129,9 @@
       <button class="btn-special" onclick="triggerManualTrack()">▶ PUSH MANUAL TRACK</button>
     </div>
 
+    <!-- PANEL 3: LIVE ACTION -->
     <div class="panel">
-      <h2>🔗 Embedded Widgets</h2>
-      <div class="control-group">
-        <label>😎 Emote Wall</label>
-        <div class="input-box">
-          <input type="checkbox" id="emote-show" onchange="updateConfig()">
-          <input type="text" id="emote-url" placeholder="Paste Streamlabs URL..." onchange="updateConfig()">
-        </div>
-      </div>
-      <div class="control-group">
-        <label>🎸 Band Effects</label>
-        <div class="input-box">
-          <input type="checkbox" id="band-show" onchange="updateConfig()">
-          <input type="text" id="band-url" value="./band-effects.html" placeholder="./band-effects.html" onchange="updateConfig()">
-        </div>
-      </div>
-      <hr>
+      <h2>⚔️ Live Action</h2>
       <div class="control-group">
         <label>🎲 Dice of Doom</label>
         <div class="input-box">
@@ -150,10 +139,7 @@
         </div>
       </div>
       <button class="btn-dice" onclick="sendPayload('dice_roll', null)">🎲 ROLL THE DICE OF DOOM 🎲</button>
-    </div>
-
-    <div class="panel">
-      <h2>⚔️ Alerts & Effects</h2>
+      <hr>
       <div class="control-group">
         <label>Alert Position</label>
         <div class="input-box">
@@ -265,10 +251,8 @@
       if (isNetworkSyncing && !force) return;
       const config = {
         clock: { show: document.getElementById('clock-show').checked, pos: document.getElementById('clock-pos').value, scale: document.getElementById('clock-scale').value },
-        emoteWall: { show: document.getElementById('emote-show').checked, url: document.getElementById('emote-url').value, pos: 'top-left', width: 1920, height: 1080 },
         bandEffects: { show: document.getElementById('band-show').checked, url: document.getElementById('band-url').value, pos: 'top-left', width: 1920, height: 1080 },
         diceOfDoom: { show: document.getElementById('dice-show').checked, url: "./dice.html", pos: 'top-left', width: 1920, height: 1080 },
-        // Custom text removed from persistent network config so it doesn't get "stuck"
         ticker: { show: document.getElementById('ticker-show').checked, showProgressBar: document.getElementById('ticker-bar').checked },
         alerts: { pos: document.getElementById('alert-pos').value },
         effects: { sound: document.getElementById('effect-sound').checked, visual: document.getElementById('effect-visual').checked },
@@ -276,17 +260,13 @@
       };
       
       sendPayload('config', config, true);
-      
-      // Save local text independently just so your dashboard remembers what you typed
-      const localState = { ...config, localTickerText: document.getElementById('ticker-custom').value };
-      localStorage.setItem('extralife_cfg', JSON.stringify(localState));
+      localStorage.setItem('extralife_cfg', JSON.stringify(config));
     }
 
     function syncUIFromNetwork(cfg) {
       isNetworkSyncing = true;
       try {
         if (cfg.clock) { document.getElementById('clock-show').checked = cfg.clock.show; document.getElementById('clock-pos').value = cfg.clock.pos; document.getElementById('clock-scale').value = cfg.clock.scale; }
-        if (cfg.emoteWall) { document.getElementById('emote-show').checked = cfg.emoteWall.show; document.getElementById('emote-url').value = cfg.emoteWall.url; }
         if (cfg.bandEffects) { document.getElementById('band-show').checked = cfg.bandEffects.show; document.getElementById('band-url').value = cfg.bandEffects.url; }
         if (cfg.diceOfDoom) { document.getElementById('dice-show').checked = cfg.diceOfDoom.show; }
         if (cfg.ticker) { document.getElementById('ticker-show').checked = cfg.ticker.show; document.getElementById('ticker-bar').checked = cfg.ticker.showProgressBar; }
@@ -302,10 +282,11 @@
     }
 
     function stageCustomText() {
-      // Button manually fires the stage_ticker payload with exactly what is in the box
-      sendPayload('stage_ticker', { text: document.getElementById('ticker-custom').value, loops: parseInt(document.getElementById('ticker-loops').value) || 1 });
-      // Update local storage so if you refresh, your typed text is still there
-      updateConfig();
+      const inputBox = document.getElementById('ticker-custom');
+      sendPayload('stage_ticker', { text: inputBox.value, loops: parseInt(document.getElementById('ticker-loops').value) || 1 });
+      
+      // Auto-wipes the text box so you don't have to manually delete it
+      inputBox.value = "";
     }
 
     function sendManualAlert() {
@@ -320,11 +301,7 @@
 
     const saved = localStorage.getItem('extralife_cfg');
     if (saved) { 
-      try { 
-        const parsed = JSON.parse(saved);
-        syncUIFromNetwork(parsed); 
-        if(parsed.localTickerText) document.getElementById('ticker-custom').value = parsed.localTickerText;
-      } catch(e) {} 
+      try { syncUIFromNetwork(JSON.parse(saved)); } catch(e) {} 
     }
 
     const tInput = document.getElementById('target-time');
