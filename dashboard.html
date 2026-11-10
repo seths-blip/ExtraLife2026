@@ -43,7 +43,6 @@
 
   <div class="dashboard-grid">
     
-    <!-- PANEL 1: CORE OVERLAY -->
     <div class="panel">
       <h2>⏱️ Core Overlay</h2>
       <div class="control-group">
@@ -91,18 +90,17 @@
       </div>
     </div>
 
-    <!-- PANEL 2: MEDIA & WIDGETS -->
     <div class="panel">
       <h2>🎵 Media & Widgets</h2>
       <div class="control-group">
         <label>🎸 Band Effects</label>
         <div class="input-box">
           <input type="checkbox" id="band-show" onchange="updateConfig()"> Show Layer
-          <input type="text" id="band-url" value="./band-effects.html" placeholder="./band-effects.html" onchange="updateConfig()">
+          <!-- Cache-busting URL included here so Evmux doesn't freeze on an old iframe build -->
+          <input type="text" id="band-url" value="./band-effects.html?v=1" placeholder="./band-effects.html?v=1" onchange="updateConfig()">
         </div>
       </div>
       <hr>
-      <!-- Restored Custom JSON loader -->
       <div class="control-group">
         <label>Load Custom JSON</label>
         <div class="input-box">
@@ -136,7 +134,6 @@
       <button class="btn-special" onclick="triggerManualTrack()">▶ PUSH MANUAL TRACK</button>
     </div>
 
-    <!-- PANEL 3: LIVE ACTION -->
     <div class="panel">
       <h2>⚔️ Live Action</h2>
       <div class="control-group">
@@ -214,7 +211,6 @@
       }
     }
 
-    // Restored functionality to parse local JSON files manually
     function loadUserJsonFile(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -225,7 +221,7 @@
           playlistTracks = Array.isArray(data) ? data : (data.tracks || data.playlist || []);
           renderPlaylist(playlistTracks);
         } catch (err) {
-          alert("Error parsing JSON file. Please check your file for formatting errors like missing commas or quotes.");
+          alert("Error parsing JSON file. Please check your file for formatting errors like missing commas.");
         }
       };
       reader.readAsText(file);
@@ -318,7 +314,6 @@
       document.getElementById('alert-name').value = ""; document.getElementById('alert-amount').value = "";
     }
 
-    // Cache-buster safely removed so your local browser does not get blocked from reading the local file
     fetch('./stream-player/playlist.json')
       .then(r => r.json())
       .then(data => { playlistTracks = Array.isArray(data) ? data : (data.tracks || data.playlist || []); renderPlaylist(playlistTracks); })
