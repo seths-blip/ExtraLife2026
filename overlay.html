@@ -60,7 +60,6 @@
   
   <div id="np-wrapper" class="widget">
     <div id="now-playing-widget">
-      <!-- Fixed safely without external dependencies -->
       <img id="np-art" class="np-art" src="./stream-player/images/image_ef100c.png" alt="Album Art" onerror="if(!this.failed){this.failed=true; this.src='./stream-player/images/image_ef100c.png';} else {this.onerror=null; this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';}">
       <div class="np-info">
         <span class="np-title" id="np-title">Track</span>
@@ -298,17 +297,27 @@
     
     async function fetchExtraLifeData() { 
       try { 
-        const tRes = await fetch(`https://extralife.donordrive.com/api/teams/${teamID}`); 
+        // 1. Double API Check to protect against Team vs Participant ID mixups
+        let apiURL = `https://extralife.donordrive.com/api/teams/${teamID}`;
+        let tRes = await fetch(apiURL);
+        
         if(!tRes.ok) {
-          let errStr = `🚨 API ERROR: EXTRA LIFE TEAM ${teamID} IS OFFLINE OR RESTRICTED 🚨 &nbsp;&nbsp;&nbsp;`;
+          apiURL = `https://extralife.donordrive.com/api/participants/${teamID}`;
+          tRes = await fetch(apiURL);
+        }
+
+        if(!tRes.ok) {
+          let errStr = `🚨 API ERROR: EXTRA LIFE ID ${teamID} IS OFFLINE OR RESTRICTED 🚨 &nbsp;&nbsp;&nbsp;`;
           document.getElementById('ticker-text-1').innerHTML = errStr;
           document.getElementById('ticker-text-2').innerHTML = errStr;
           return;
         }
+
         const tData = await tRes.json(); 
         
+        // 2. Fetch donations associated with whichever API worked
         let dons = [];
-        const dRes = await fetch(`https://extralife.donordrive.com/api/teams/${teamID}/donations`); 
+        const dRes = await fetch(`${apiURL}/donations`); 
         if(dRes.ok) {
           const dData = await dRes.json();
           if (Array.isArray(dData)) dons = dData;
@@ -322,7 +331,9 @@
         if (stagedTicker.active && stagedTicker.text.trim() !== "") { 
           str += `📢 <span class="green-text">${stagedTicker.text.toUpperCase()}</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `; 
         }
-        str += `👑 <span class="gold-text">${(tData.name||"Our Guild").toUpperCase()} PROGRESS:</span> $${raised} / $${goal} 👑 &nbsp;&nbsp;&nbsp;&nbsp; 📜 <span class="gold-text">BENEFACTORS:</span> `; 
+        
+        let guildName = tData.name || tData.displayName || "Our Guild";
+        str += `👑 <span class="gold-text">${guildName.toUpperCase()} PROGRESS:</span> $${raised} / $${goal} 👑 &nbsp;&nbsp;&nbsp;&nbsp; 📜 <span class="gold-text">BENEFACTORS:</span> `; 
         
         if (dons.length > 0) {
           dons.slice(0,5).forEach(d => str += `${d.displayName||"Hero"} ($${d.amount}) • `); 
