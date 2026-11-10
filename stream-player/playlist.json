@@ -1,13 +1,13 @@
 [
-  { "title": "A Sorcerers Last Hope", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" }  
-{ "title": "Amethyst Rain", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+  { "title": "A Sorcerers Last Hope", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },  
+  { "title": "Amethyst Rain", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
   { "title": "Calming Moon", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
   { "title": "Crystal Tombs", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
   { "title": "Dark Energy", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
   { "title": "Destiny", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
   { "title": "Dimensions", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" }, 
   { "title": "Dungeon Keeper", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" }, 
-{ "title": "Electro Playhouse", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+  { "title": "Electro Playhouse", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
   { "title": "Elixir", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
   {"title": "Galactic Exploration", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
   { "title": "Genesis", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
