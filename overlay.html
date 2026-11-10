@@ -90,7 +90,6 @@
     function applyPosition(el, pos, width, height) {
       if (!pos) pos = 'top-left'; 
       el.style.top = ''; el.style.bottom = ''; el.style.left = ''; el.style.right = ''; 
-      
       let transformStr = 'translate(0, 0)';
 
       if(width) el.style.width = width + (typeof width === 'number' ? 'px' : ''); 
@@ -101,10 +100,7 @@
       el.style.transformOrigin = `${originY} ${originX}`;
 
       if (width == 1920 && height == 1080) {
-        el.style.top = '0px';
-        el.style.left = '0px';
-        el.style.transform = 'none';
-        return; 
+        el.style.top = '0px'; el.style.left = '0px'; el.style.transform = 'none'; return; 
       }
 
       switch(pos) {
@@ -116,7 +112,6 @@
         case 'bottom-center': el.style.bottom = '80px'; el.style.left = '50%'; transformStr = 'translateX(-50%)'; break;
         case 'center': el.style.top = '50%'; el.style.left = '50%'; transformStr = 'translate(-50%, -50%)'; break;
       }
-      
       el.style.transform = transformStr;
     }
 
@@ -132,18 +127,13 @@
       const updateIframe = (id, data) => { 
         const el = document.getElementById(id);
         if (!el) return;
-        
         if (data && data.show && data.url && data.url.trim() !== "") {
           el.style.display = 'block';
           applyPosition(el, data.pos, data.width, data.height);
-          if (el.getAttribute('src') !== data.url) {
-            el.setAttribute('src', data.url);
-          }
+          if (el.getAttribute('src') !== data.url) el.setAttribute('src', data.url);
         } else {
           el.style.display = 'none';
-          if (el.getAttribute('src') !== 'about:blank') {
-            el.setAttribute('src', 'about:blank');
-          }
+          if (el.getAttribute('src') !== 'about:blank') el.setAttribute('src', 'about:blank');
         }
       };
       
@@ -165,18 +155,12 @@
       let configApplied = false;
       try {
         const cached = localStorage.getItem('extralife_overlay_cache');
-        if (cached) {
-          applyConfig(JSON.parse(cached));
-          configApplied = true;
-        }
+        if (cached) { applyConfig(JSON.parse(cached)); configApplied = true; }
       } catch(e) {}
-      
       if (!configApplied) {
         applyConfig({
-          clock: { show: true, pos: 'top-right', scale: 1 },
-          ticker: { show: true, showProgressBar: true },
-          alerts: { pos: 'center' },
-          effects: { sound: true, visual: true },
+          clock: { show: true, pos: 'top-right', scale: 1 }, ticker: { show: true, showProgressBar: true },
+          alerts: { pos: 'center' }, effects: { sound: true, visual: true },
           bandEffects: { show: false }, diceOfDoom: { show: false }
         });
       }
@@ -184,11 +168,7 @@
 
     const topicName = `extralife2026/${teamID}/commands`;
     const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt'); 
-    
-    client.on('connect', () => { 
-      client.subscribe(topicName); 
-      client.publish(topicName, JSON.stringify({ type: 'request_sync' })); 
-    });
+    client.on('connect', () => { client.subscribe(topicName); client.publish(topicName, JSON.stringify({ type: 'request_sync' })); });
 
     client.on('message', (topic, message) => {
       try {
@@ -212,7 +192,6 @@
           artImg.src = data.payload.art || "./stream-player/images/image_ef100c.png";
           
           applyPosition(npWrapper, data.payload.pos);
-          
           np.classList.add('active');
           clearTimeout(npTimeout);
           npTimeout = setTimeout(() => np.classList.remove('active'), 12000);
@@ -226,96 +205,66 @@
 
     document.getElementById('main-ticker-track').addEventListener('animationiteration', () => {
       if (stagedTicker.pending) {
-        stagedTicker.active = true; 
-        stagedTicker.text = stagedTicker.pendingText; 
-        stagedTicker.loops = stagedTicker.pendingLoops; 
-        stagedTicker.pending = false;
+        stagedTicker.active = true; stagedTicker.text = stagedTicker.pendingText; 
+        stagedTicker.loops = stagedTicker.pendingLoops; stagedTicker.pending = false;
       } else if (stagedTicker.active) {
         stagedTicker.loops--; 
-        if (stagedTicker.loops <= 0) { 
-          stagedTicker.active = false; 
-          stagedTicker.text = ""; 
-        }
+        if (stagedTicker.loops <= 0) { stagedTicker.active = false; stagedTicker.text = ""; }
       }
       fetchExtraLifeData(); 
     });
 
     let globalAudioCtx = null;
-
     function fireConfetti() {
       const container = document.getElementById('confetti-container'); 
       const emojis = ['🎉', '💸', '✨', '🪙', '🎮', '⚔️'];
       for (let i = 0; i < 50; i++) { 
-        let el = document.createElement('div'); 
-        el.innerText = emojis[Math.floor(Math.random() * emojis.length)]; 
-        el.className = 'confetti-piece'; 
-        el.style.left = Math.random() * 100 + 'vw'; 
-        el.style.animationDuration = (Math.random() * 2 + 2) + 's'; 
-        el.style.fontSize = (Math.random() * 20 + 20) + 'px'; 
-        container.appendChild(el); 
-        setTimeout(() => el.remove(), 5000); 
+        let el = document.createElement('div'); el.innerText = emojis[Math.floor(Math.random() * emojis.length)]; 
+        el.className = 'confetti-piece'; el.style.left = Math.random() * 100 + 'vw'; 
+        el.style.animationDuration = (Math.random() * 2 + 2) + 's'; el.style.fontSize = (Math.random() * 20 + 20) + 'px'; 
+        container.appendChild(el); setTimeout(() => el.remove(), 5000); 
       }
-      
       if (soundsEnabled) { 
         try { 
-          if (!globalAudioCtx) {
-            globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          }
-          const osc = globalAudioCtx.createOscillator();
-          const g = globalAudioCtx.createGain();
-          osc.type = 'triangle';
-          osc.connect(g);
-          g.connect(globalAudioCtx.destination);
-          
+          if (!globalAudioCtx) globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = globalAudioCtx.createOscillator(); const g = globalAudioCtx.createGain();
+          osc.type = 'triangle'; osc.connect(g); g.connect(globalAudioCtx.destination);
           const now = globalAudioCtx.currentTime;
-          osc.frequency.setValueAtTime(440, now);
-          osc.frequency.exponentialRampToValueAtTime(880, now + 0.5);
-          g.gain.setValueAtTime(0.2, now);
-          g.gain.exponentialRampToValueAtTime(0.00001, now + 1);
-          
-          osc.start(now);
-          osc.stop(now + 1); 
+          osc.frequency.setValueAtTime(440, now); osc.frequency.exponentialRampToValueAtTime(880, now + 0.5);
+          g.gain.setValueAtTime(0.2, now); g.gain.exponentialRampToValueAtTime(0.00001, now + 1);
+          osc.start(now); osc.stop(now + 1); 
         } catch(e) {} 
       }
     }
 
     setInterval(() => {
       let now = new Date().getTime(), distance = targetDate - now, isOvertime = distance < 0, absDist = Math.abs(distance);
-      let d = Math.floor(absDist / (1000 * 60 * 60 * 24));
-      let h = Math.floor((absDist % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      let m = Math.floor((absDist % (1000 * 60 * 60)) / (1000 * 60));
-      let s = Math.floor((absDist % (1000 * 60)) / 1000);
+      let d = Math.floor(absDist / (1000 * 60 * 60 * 24)), h = Math.floor((absDist % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)), m = Math.floor((absDist % (1000 * 60 * 60)) / (1000 * 60)), s = Math.floor((absDist % (1000 * 60)) / 1000);
       let tStr = (h < 10 ? "0" + h : h) + ":" + (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
       if (d > 0) tStr = d + ":" + tStr; 
       document.getElementById("cd-time").innerHTML = isOvertime ? "+" + tStr : tStr;
-      const cdLabel = document.querySelector('.cd-label'); 
-      cdLabel.innerText = isOvertime ? "MARATHON OVERTIME" : "EXTRA LIFE MARATHON"; 
-      cdLabel.style.color = isOvertime ? "#FF5555" : "#D4AF37";
+      const cdLabel = document.querySelector('.cd-label'); cdLabel.innerText = isOvertime ? "MARATHON OVERTIME" : "EXTRA LIFE MARATHON"; cdLabel.style.color = isOvertime ? "#FF5555" : "#D4AF37";
     }, 1000);
 
     let seenDonationIDs = [], donationQueue = [], isAlerting = false, isFirstLoad = true;
     
     async function fetchExtraLifeData() { 
       try { 
-        // 1. Double API Check to protect against Team vs Participant ID mixups
-        let apiURL = `https://extralife.donordrive.com/api/teams/${teamID}`;
+        // 1. URL strictly changed to the whitelisted domain to bypass aggressive CORS shields
+        let apiURL = `https://www.extra-life.org/api/teams/${teamID}`;
         let tRes = await fetch(apiURL);
         
         if(!tRes.ok) {
-          apiURL = `https://extralife.donordrive.com/api/participants/${teamID}`;
+          apiURL = `https://www.extra-life.org/api/participants/${teamID}`;
           tRes = await fetch(apiURL);
         }
-
         if(!tRes.ok) {
           let errStr = `🚨 API ERROR: EXTRA LIFE ID ${teamID} IS OFFLINE OR RESTRICTED 🚨 &nbsp;&nbsp;&nbsp;`;
-          document.getElementById('ticker-text-1').innerHTML = errStr;
-          document.getElementById('ticker-text-2').innerHTML = errStr;
+          document.getElementById('ticker-text-1').innerHTML = errStr; document.getElementById('ticker-text-2').innerHTML = errStr;
           return;
         }
 
         const tData = await tRes.json(); 
-        
-        // 2. Fetch donations associated with whichever API worked
         let dons = [];
         const dRes = await fetch(`${apiURL}/donations`); 
         if(dRes.ok) {
@@ -323,12 +272,11 @@
           if (Array.isArray(dData)) dons = dData;
         }
         
-        let raised = tData.sumDonations || 0; 
-        let goal = tData.fundraisingGoal || 1; 
+        let raised = tData.sumDonations || 0; let goal = tData.fundraisingGoal || 1; 
         document.getElementById('progress-bar-fill').style.width = Math.min((raised / goal) * 100, 100) + '%'; 
         
         let str = ""; 
-        if (stagedTicker.active && stagedTicker.text.trim() !== "") { 
+        if (stagedTicker.active && stagedTicker.text && stagedTicker.text.trim() !== "") { 
           str += `📢 <span class="green-text">${stagedTicker.text.toUpperCase()}</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `; 
         }
         
@@ -341,8 +289,7 @@
           str += `Awaiting our first hero! • `;
         }
         
-        document.getElementById('ticker-text-1').innerHTML = str; 
-        document.getElementById('ticker-text-2').innerHTML = str; 
+        document.getElementById('ticker-text-1').innerHTML = str; document.getElementById('ticker-text-2').innerHTML = str; 
         
         for(let i=dons.length-1; i>=0; i--){ 
           if(!seenDonationIDs.includes(dons[i].donationID)){ 
@@ -351,7 +298,12 @@
           } 
         } 
         isFirstLoad = false; 
-      } catch(err){} 
+      } catch(err){
+        // 2. Fatal Network errors are now loudly printed to the ticker instead of failing silently
+        let errStr = `🚨 NETWORK ERROR: ${err.message} (CHECK BROWSER SHIELDS OR AD BLOCKERS) 🚨 &nbsp;&nbsp;&nbsp;`;
+        document.getElementById('ticker-text-1').innerHTML = errStr; 
+        document.getElementById('ticker-text-2').innerHTML = errStr; 
+      } 
     }
     
     function processQueue() { 
@@ -366,9 +318,7 @@
       }, 8000); 
     }
     
-    setInterval(fetchExtraLifeData, 30000); 
-    fetchExtraLifeData(); 
-    setInterval(processQueue, 1000);
+    setInterval(fetchExtraLifeData, 30000); fetchExtraLifeData(); setInterval(processQueue, 1000);
 
     const ctx1 = document.getElementById('fight-canvas-1').getContext('2d');
     const ctx2 = document.getElementById('fight-canvas-2').getContext('2d');
@@ -380,10 +330,7 @@
         try { let stored = localStorage.getItem("extralife_arc_bag"); if (stored) arcBag = JSON.parse(stored); } catch(e) {} 
         if (!arcBag || arcBag.length === 0) { 
             arcBag = Array.from({length: 24}, (_, i) => i); 
-            for (let i = arcBag.length - 1; i > 0; i--) { 
-                const j = Math.floor(Math.random() * (i + 1)); 
-                [arcBag[i], arcBag[j]] = [arcBag[j], arcBag[i]]; 
-            } 
+            for (let i = arcBag.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arcBag[i], arcBag[j]] = [arcBag[j], arcBag[i]]; } 
         } 
         let nextArc = arcBag.pop(); 
         try { localStorage.setItem("extralife_arc_bag", JSON.stringify(arcBag)); } catch(e) {} 
