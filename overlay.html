@@ -60,7 +60,7 @@
   
   <div id="np-wrapper" class="widget">
     <div id="now-playing-widget">
-      <img id="np-art" class="np-art" src="./stream-player/images/image_ef100c.png" alt="Album Art" onerror="if(!this.failed){this.failed=true; this.src='./stream-player/images/image_ef100c.png';} else {this.onerror=null; this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';}">
+      <img id="np-art" class="np-art" src="./stream-player/images/NorseFoundryVerticalLogo.png" alt="Album Art" onerror="if(!this.failed){this.failed=true; this.src='./stream-player/images/NorseFoundryVerticalLogo.png';} else {this.onerror=null; this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';}">
       <div class="np-info">
         <span class="np-title" id="np-title">Track</span>
         <span class="np-artist" id="np-artist">Artist</span>
@@ -168,10 +168,7 @@
       try {
         const data = JSON.parse(message.toString());
         if (data.type === 'config') applyConfig(data.payload);
-        
-        // Manual alerts are still caught here if sent from the dashboard
         if (data.type === 'alert') donationQueue.push(data.payload);
-        
         if (data.type === 'confetti') fireConfetti();
         if (data.type === 'stage_ticker') {
           stagedTicker.pendingText = data.payload.text; 
@@ -185,7 +182,7 @@
           document.getElementById('np-artist').innerText = data.payload.artist || "Artist";
           const artImg = document.getElementById('np-art');
           artImg.failed = false; 
-          artImg.src = data.payload.art || "./stream-player/images/image_ef100c.png";
+          artImg.src = data.payload.art || "./stream-player/images/NorseFoundryVerticalLogo.png";
           applyPosition(npWrapper, data.payload.pos);
           np.classList.add('active');
           clearTimeout(npTimeout);
@@ -245,11 +242,11 @@
     
     async function fetchExtraLifeData() { 
       try { 
-        let apiURL = `https://extra-life.org/api/teams/${teamID}`;
+        let apiURL = `https://extralife.donordrive.com/api/teams/${teamID}`;
         let tRes = await fetch(apiURL);
         
         if(!tRes.ok) {
-          apiURL = `https://extra-life.org/api/participants/${teamID}`;
+          apiURL = `https://extralife.donordrive.com/api/participants/${teamID}`;
           tRes = await fetch(apiURL);
         }
         if(!tRes.ok) {
@@ -292,8 +289,10 @@
             if(!isFirstLoad) {
               const newAlert = { name: dons[i].displayName || "Hero", amount: dons[i].amount };
               donationQueue.push(newAlert);
-              // Broadcast immediately so band-effects layer catches it without polling
-              client.publish(topicName, JSON.stringify({ type: 'alert', payload: newAlert }));
+              
+              if(client.connected) {
+                client.publish(topicName, JSON.stringify({ type: 'alert', payload: newAlert }));
+              }
             } 
           } 
         } 
@@ -317,7 +316,6 @@
       }, 8000); 
     }
     
-    // Polling rate increased to 15,000ms (15 seconds) to match production standards
     setInterval(fetchExtraLifeData, 15000); fetchExtraLifeData(); setInterval(processQueue, 1000);
 
     const ctx1 = document.getElementById('fight-canvas-1').getContext('2d');
