@@ -102,6 +102,14 @@
         </div>
       </div>
       <hr>
+      <!-- Restored Custom JSON loader -->
+      <div class="control-group">
+        <label>Load Custom JSON</label>
+        <div class="input-box">
+          <input type="file" id="json-file-input" accept=".json" onchange="loadUserJsonFile(event)">
+        </div>
+      </div>
+      
       <div id="playlist-container"></div>
       
       <div class="control-group">
@@ -206,6 +214,23 @@
       }
     }
 
+    // Restored functionality to parse local JSON files manually
+    function loadUserJsonFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          playlistTracks = Array.isArray(data) ? data : (data.tracks || data.playlist || []);
+          renderPlaylist(playlistTracks);
+        } catch (err) {
+          alert("Error parsing JSON file. Please check your file for formatting errors like missing commas or quotes.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
     function renderPlaylist(tracks) {
       const container = document.getElementById('playlist-container');
       container.innerHTML = '';
@@ -293,8 +318,8 @@
       document.getElementById('alert-name').value = ""; document.getElementById('alert-amount').value = "";
     }
 
-    // Cache-buster applied to ensure the fresh JSON is always pulled
-    fetch('./stream-player/playlist.json?v=' + Date.now())
+    // Cache-buster safely removed so your local browser does not get blocked from reading the local file
+    fetch('./stream-player/playlist.json')
       .then(r => r.json())
       .then(data => { playlistTracks = Array.isArray(data) ? data : (data.tracks || data.playlist || []); renderPlaylist(playlistTracks); })
       .catch(() => renderPlaylist(playlistTracks));
