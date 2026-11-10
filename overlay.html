@@ -91,7 +91,6 @@
       if (!pos) pos = 'top-left'; 
       el.style.top = ''; el.style.bottom = ''; el.style.left = ''; el.style.right = ''; 
       let transformStr = 'translate(0, 0)';
-
       if(width) el.style.width = width + (typeof width === 'number' ? 'px' : ''); 
       if(height) el.style.height = height + (typeof height === 'number' ? 'px' : '');
       
@@ -118,7 +117,6 @@
     function applyConfig(config) {
       if (!config) return;
       try { localStorage.setItem('extralife_overlay_cache', JSON.stringify(config)); } catch(e) {}
-
       const clock = document.getElementById('countdown-widget'); 
       clock.style.display = config.clock.show ? 'block' : 'none'; 
       applyPosition(clock, config.clock.pos); 
@@ -139,15 +137,12 @@
       
       updateIframe('band-effects', config.bandEffects);
       updateIframe('dice-of-doom', config.diceOfDoom);
-
       document.getElementById('ticker-wrap').style.display = config.ticker.show ? 'flex' : 'none'; 
       document.getElementById('progress-bar-bg').style.display = config.ticker.showProgressBar ? 'block' : 'none';
-      
       applyPosition(document.getElementById('alert-wrapper'), config.alerts.pos);
       soundsEnabled = config.effects.sound; 
       visualEffectsEnabled = config.effects.visual; 
       if (config.targetTime) targetDate = parseInt(config.targetTime);
-      
       fetchExtraLifeData(); 
     }
 
@@ -160,8 +155,7 @@
       if (!configApplied) {
         applyConfig({
           clock: { show: true, pos: 'top-right', scale: 1 }, ticker: { show: true, showProgressBar: true },
-          alerts: { pos: 'center' }, effects: { sound: true, visual: true },
-          bandEffects: { show: false }, diceOfDoom: { show: false }
+          alerts: { pos: 'center' }, effects: { sound: true, visual: true }, bandEffects: { show: false }, diceOfDoom: { show: false }
         });
       }
     });
@@ -186,11 +180,9 @@
           const np = document.getElementById('now-playing-widget');
           document.getElementById('np-title').innerText = data.payload.title || "Track";
           document.getElementById('np-artist').innerText = data.payload.artist || "Artist";
-          
           const artImg = document.getElementById('np-art');
           artImg.failed = false; 
           artImg.src = data.payload.art || "./stream-player/images/image_ef100c.png";
-          
           applyPosition(npWrapper, data.payload.pos);
           np.classList.add('active');
           clearTimeout(npTimeout);
@@ -250,12 +242,12 @@
     
     async function fetchExtraLifeData() { 
       try { 
-        // 1. URL strictly changed to the whitelisted domain to bypass aggressive CORS shields
-        let apiURL = `https://www.extra-life.org/api/teams/${teamID}`;
+        // 1. EXACT NATIVE ENDPOINT: Matches the breadweb implementation directly to prevent blocks
+        let apiURL = `https://extra-life.org/api/teams/${teamID}`;
         let tRes = await fetch(apiURL);
         
         if(!tRes.ok) {
-          apiURL = `https://www.extra-life.org/api/participants/${teamID}`;
+          apiURL = `https://extra-life.org/api/participants/${teamID}`;
           tRes = await fetch(apiURL);
         }
         if(!tRes.ok) {
@@ -265,6 +257,7 @@
         }
 
         const tData = await tRes.json(); 
+        
         let dons = [];
         const dRes = await fetch(`${apiURL}/donations`); 
         if(dRes.ok) {
@@ -299,8 +292,7 @@
         } 
         isFirstLoad = false; 
       } catch(err){
-        // 2. Fatal Network errors are now loudly printed to the ticker instead of failing silently
-        let errStr = `🚨 NETWORK ERROR: ${err.message} (CHECK BROWSER SHIELDS OR AD BLOCKERS) 🚨 &nbsp;&nbsp;&nbsp;`;
+        let errStr = `🚨 NETWORK ERROR: ${err.message} 🚨 &nbsp;&nbsp;&nbsp;`;
         document.getElementById('ticker-text-1').innerHTML = errStr; 
         document.getElementById('ticker-text-2').innerHTML = errStr; 
       } 
