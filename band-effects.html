@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
     body { margin: 0; overflow: hidden; background: transparent; }
 
@@ -42,6 +43,19 @@
     let isFirstLoad = true;
     let fxQueue = [];
     let isPlayingFx = false;
+
+    // --- MQTT INTEGRATION: Listen for Manual Alerts from Dashboard ---
+    const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt'); 
+    client.on('connect', () => client.subscribe(`extralife2026/${teamID}/commands`));
+    client.on('message', (topic, message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        if (data.type === 'alert' && data.payload && data.payload.amount) {
+          fxQueue.push(Number(data.payload.amount));
+          if (!isPlayingFx) processFxQueue();
+        }
+      } catch(e) {}
+    });
 
     function spawnLighter() {
       const lighter = document.createElement('div');
@@ -163,7 +177,16 @@
     async function fetchExtraLifeData() {
       if (teamID === "YOUR_TEAM_ID_HERE" && !TEST_MODE) return;
       try {
-        const donRes = await fetch(`https://extralife.donordrive.com/api/teams/${teamID}/donations`);
+        let apiURL = `https://extralife.donordrive.com/api/teams/${teamID}`;
+        let tRes = await fetch(apiURL);
+        
+        if(!tRes.ok) {
+          apiURL = `https://extralife.donordrive.com/api/participants/${teamID}`;
+          tRes = await fetch(apiURL);
+        }
+        if(!tRes.ok) return;
+
+        const donRes = await fetch(`${apiURL}/donations`);
         if (donRes.ok) {
           const dData = await donRes.json();
           const donations = Array.isArray(dData) ? dData : [];
