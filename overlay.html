@@ -168,7 +168,10 @@
       try {
         const data = JSON.parse(message.toString());
         if (data.type === 'config') applyConfig(data.payload);
+        
+        // Manual alerts are still caught here if sent from the dashboard
         if (data.type === 'alert') donationQueue.push(data.payload);
+        
         if (data.type === 'confetti') fireConfetti();
         if (data.type === 'stage_ticker') {
           stagedTicker.pendingText = data.payload.text; 
@@ -242,7 +245,6 @@
     
     async function fetchExtraLifeData() { 
       try { 
-        // 1. EXACT NATIVE ENDPOINT: Matches the breadweb implementation directly to prevent blocks
         let apiURL = `https://extra-life.org/api/teams/${teamID}`;
         let tRes = await fetch(apiURL);
         
@@ -287,7 +289,12 @@
         for(let i=dons.length-1; i>=0; i--){ 
           if(!seenDonationIDs.includes(dons[i].donationID)){ 
             seenDonationIDs.push(dons[i].donationID); 
-            if(!isFirstLoad) donationQueue.push({name:dons[i].displayName||"Hero", amount:dons[i].amount}); 
+            if(!isFirstLoad) {
+              const newAlert = { name: dons[i].displayName || "Hero", amount: dons[i].amount };
+              donationQueue.push(newAlert);
+              // Broadcast immediately so band-effects layer catches it without polling
+              client.publish(topicName, JSON.stringify({ type: 'alert', payload: newAlert }));
+            } 
           } 
         } 
         isFirstLoad = false; 
@@ -310,7 +317,8 @@
       }, 8000); 
     }
     
-    setInterval(fetchExtraLifeData, 30000); fetchExtraLifeData(); setInterval(processQueue, 1000);
+    // Polling rate increased to 15,000ms (15 seconds) to match production standards
+    setInterval(fetchExtraLifeData, 15000); fetchExtraLifeData(); setInterval(processQueue, 1000);
 
     const ctx1 = document.getElementById('fight-canvas-1').getContext('2d');
     const ctx2 = document.getElementById('fight-canvas-2').getContext('2d');
