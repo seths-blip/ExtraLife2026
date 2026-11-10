@@ -177,11 +177,11 @@
     async function fetchExtraLifeData() {
       if (teamID === "YOUR_TEAM_ID_HERE" && !TEST_MODE) return;
       try {
-        let apiURL = `https://extralife.donordrive.com/api/teams/${teamID}`;
+        let apiURL = `https://extra-life.org/api/teams/${teamID}`;
         let tRes = await fetch(apiURL);
         
         if(!tRes.ok) {
-          apiURL = `https://extralife.donordrive.com/api/participants/${teamID}`;
+          apiURL = `https://extra-life.org/api/participants/${teamID}`;
           tRes = await fetch(apiURL);
         }
         if(!tRes.ok) return;
