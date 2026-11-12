@@ -4,24 +4,17 @@
     <meta charset="UTF-8">
     <title>Dice of Doom - Flawless SVG D20 (Manual Reset)</title>
     <style>
-        /* =========================================
-           🎨 ADJUSTABLE SETTINGS
-           ========================================= */
         :root {
             --bg-color: #050000;
             --skull-color: #ff003c;
             --skull-glow: #ff0000;
-            
             --dice-center-color: #2a0005; 
             --dice-edge-color: #050000;   
             --dice-border: #ff003c;       
-            
             --text-color: #ffffff;
             --text-glow: #ff003c;         
-            
             --result-glow: #ff0000;
         }
-        /* ========================================= */
 
         body {
             margin: 0;
@@ -38,7 +31,6 @@
             user-select: none;
         }
 
-        /* Transparent mode when embedded inside overlay.html iframe */
         body.overlay-mode {
             background: transparent !important;
             animation: none !important;
@@ -74,7 +66,6 @@
             100% { transform: translate(0, 0) rotate(0deg); }
         }
 
-        /* --- SKULL & BUTTON --- */
         #interactive-zone {
             position: absolute;
             z-index: 20;
@@ -137,7 +128,6 @@
             100% { transform: translate(4px, -4px) rotate(-2deg) scale(1.3); }
         }
 
-        /* --- FLAWLESS NATIVE SVG D20 --- */
         #dice-scene {
             width: 150px;
             height: 150px;
@@ -198,7 +188,6 @@
             transform: translate(-50%, -50%) rotateZ(180deg);
         }
 
-        /* --- FINAL TEXT --- */
         #result-text {
             position: absolute;
             top: 10%;
@@ -222,7 +211,6 @@
             transform: scale(1) translateY(0) !important;
         }
 
-        /* --- OMINOUS REROLL BUTTON --- */
         #reroll-btn {
             position: absolute;
             bottom: 50%;
@@ -285,7 +273,6 @@
     <div id="reroll-btn">TEMPT FATE ONCE MORE</div>
 
     <script>
-        // --- 0. AUTO-DETECT OVERLAY IFRAME VS STANDALONE PAGE ---
         const urlParams = new URLSearchParams(window.location.search);
         const isEmbedded = (window.self !== window.top) || (urlParams.get('transparent') === '1');
         if (isEmbedded) {
@@ -293,7 +280,6 @@
             document.getElementById('bg-body').classList.remove('ambient-pulse');
         }
 
-        // --- 1. CRYPTOGRAPHIC RANDOM NUMBER GENERATOR ---
         function getTrueRandom(min, max) {
             const array = new Uint32Array(1);
             window.crypto.getRandomValues(array);
@@ -301,7 +287,6 @@
             return Math.floor(decimal * (max - min + 1)) + min;
         }
 
-        // --- 2. BUILD THE FLAWLESS D20 GEOMETRY ---
         const d20 = document.getElementById('d20');
         const facesData = [];
         const Z_OFFSET = 113.4; 
@@ -330,7 +315,6 @@
             d20.appendChild(face);
         });
 
-        // --- 3. THE CINEMATIC LOGIC ---
         let isRolling = false;
 
         const skull = document.getElementById('skull');
@@ -345,16 +329,14 @@
 
         skull.addEventListener('click', startSequence);
         btn.addEventListener('click', startSequence);
-        
-        // Manual Reset Trigger (Standalone click)
         rerollBtn.addEventListener('click', resetSequence);
 
-        // Remote Control Listener (From overlay.html / Dashboard)
+        // Remote Control Listener with FIXED reset logic
         window.addEventListener('message', (event) => {
             if (event.data === 'ROLL_DICE' || (event.data && event.data.type === 'ROLL_DICE')) {
                 startSequence();
             } else if (event.data === 'RESET_DICE' || (event.data && event.data.type === 'RESET_DICE')) {
-                if (!isRolling) resetSequence();
+                resetSequence(); // BUG FIXED: Resets unconditionally, completely bypassing isRolling
             }
         });
 
@@ -362,15 +344,13 @@
             if(isRolling) return; 
             isRolling = true;
 
-            // Ensure clean state even if triggered remotely while a prior result is still displayed
             bgBody.classList.remove('flash-white', 'impact-shake');
-            void bgBody.offsetWidth; // Force reflow so animations can re-trigger cleanly
+            void bgBody.offsetWidth; 
             skull.classList.remove('shake-level-2');
             interactiveZone.style.opacity = "1";
             interactiveZone.style.pointerEvents = "auto";
             btn.style.boxShadow = "0 0 20px rgba(255, 0, 0, 0.4), inset 0 0 15px rgba(255, 0, 0, 0.3)";
 
-            // PHASE 1: SUMMON
             btn.innerText = "SUMMONING...";
             btn.style.color = "#ffffff";
             btn.style.borderColor = "#ffffff";
@@ -382,7 +362,6 @@
             d20.style.transition = "none";
             d20.style.transform = `rotateX(0deg) rotateY(0deg) rotateZ(0deg)`;
 
-            // PHASE 2: ESCALATION
             setTimeout(() => {
                 btn.innerText = "DOOM IS IMMINENT!";
                 btn.style.color = "#ff0000";
@@ -392,7 +371,6 @@
                 skull.classList.add('shake-level-2');
             }, 1500);
 
-            // PHASE 3: THE DROP & GRAVITY RICOCHET
             setTimeout(() => {
                 bgBody.classList.add('flash-white');
                 interactiveZone.style.opacity = "0";
@@ -427,7 +405,6 @@
                     d20.style.transform = `rotateX(${targetX}deg) rotateY(${targetY}deg) rotateZ(${targetZ}deg)`;
                 }, 50);
 
-                // PHASE 4: REVEAL
                 setTimeout(() => {
                     bgBody.classList.add('impact-shake');
                     
@@ -441,7 +418,6 @@
                     
                     resultText.classList.add('show-result');
 
-                    // PHASE 5: THE OMINOUS ASK
                     setTimeout(() => {
                         rerollBtn.classList.add('show-reroll');
                     }, 1500); 
@@ -451,7 +427,6 @@
             }, 3000); 
         }
 
-        // --- 4. THE MANUAL RESET ---
         function resetSequence() {
             resultText.classList.remove('show-result');
             rerollBtn.classList.remove('show-reroll');
