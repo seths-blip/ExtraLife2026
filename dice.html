@@ -335,7 +335,7 @@
             if (event.data === 'ROLL_DICE' || (event.data && event.data.type === 'ROLL_DICE')) {
                 startSequence();
             } else if (event.data === 'RESET_DICE' || (event.data && event.data.type === 'RESET_DICE')) {
-                resetSequence(); // BUG FIXED: Resets unconditionally
+                resetSequence(); // BUG SQUASHED: Removed the if(!isRolling) lock so it forces a reset instantly
             }
         });
 
@@ -419,7 +419,7 @@
 
                     setTimeout(() => {
                         rerollBtn.classList.add('show-reroll');
-                        isRolling = false; // BUG FIXED: Unlocks so it can roll again
+                        isRolling = false; 
                     }, 1500); 
 
                 }, 4500); 
