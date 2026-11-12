@@ -1,195 +1,474 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      background: transparent;
-      width: 1920px;
-      height: 1080px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      cursor: pointer; /* Makes the whole screen obviously clickable */
-    }
+    <meta charset="UTF-8">
+    <title>Dice of Doom - Flawless SVG D20 (Manual Reset)</title>
+    <style>
+        /* =========================================
+           🎨 ADJUSTABLE SETTINGS
+           ========================================= */
+        :root {
+            --bg-color: #050000;
+            --skull-color: #ff003c;
+            --skull-glow: #ff0000;
+            
+            --dice-center-color: #2a0005; 
+            --dice-edge-color: #050000;   
+            --dice-border: #ff003c;       
+            
+            --text-color: #ffffff;
+            --text-glow: #ff003c;         
+            
+            --result-glow: #ff0000;
+        }
+        /* ========================================= */
 
-    #doom-container {
-      background: rgba(0, 0, 0, 0.85);
-      border: 4px solid #D4AF37;
-      border-radius: 15px;
-      padding: 40px 60px;
-      text-align: center;
-      color: white;
-      box-shadow: 0px 0px 30px rgba(212, 175, 55, 0.4);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-width: 320px;
-      min-height: 300px;
-      transition: transform 0.2s ease-in-out;
-    }
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: radial-gradient(circle at center, #2a0000 0%, var(--bg-color) 70%);
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Impact', sans-serif;
+            color: white;
+            user-select: none;
+        }
 
-    #doom-container:hover {
-      transform: scale(1.02);
-      box-shadow: 0px 0px 40px rgba(212, 175, 55, 0.6);
-    }
+        /* Transparent mode when embedded inside overlay.html iframe */
+        body.overlay-mode {
+            background: transparent !important;
+            animation: none !important;
+        }
 
-    .prompt-text {
-      color: #D4AF37;
-      font-size: 32px;
-      text-transform: uppercase;
-      letter-spacing: 3px;
-      font-weight: bold;
-      margin-top: 25px;
-    }
+        .ambient-pulse { animation: bg-pulse 4s infinite alternate; }
+        @keyframes bg-pulse {
+            0% { background: radial-gradient(circle at center, #2a0000 0%, var(--bg-color) 70%); }
+            100% { background: radial-gradient(circle at center, #4a0000 0%, var(--bg-color) 80%); }
+        }
 
-    /* Clean SVG Skull - No Emojis */
-    .skull-icon {
-      width: 120px;
-      height: 120px;
-      fill: #FFF;
-      transition: fill 0.3s;
-    }
+        .flash-white { animation: flash 0.4s ease-out forwards; }
+        @keyframes flash {
+            0% { background: #ffffff; }
+            100% { background: radial-gradient(circle at center, #2a0000 0%, var(--bg-color) 70%); }
+        }
 
-    #doom-container:hover .skull-icon {
-      fill: #FF5555;
-    }
+        body.overlay-mode.flash-white {
+            animation: flash-overlay 0.4s ease-out forwards !important;
+        }
+        @keyframes flash-overlay {
+            0% { background: rgba(255, 255, 255, 0.35); }
+            100% { background: transparent; }
+        }
 
-    /* D20 Polygon Shape */
-    #d20-graphic {
-      width: 140px;
-      height: 140px;
-      position: relative;
-      display: none;
-      align-items: center;
-      justify-content: center;
-    }
+        .impact-shake { animation: impact 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes impact {
+            0% { transform: translate(20px, 20px) rotate(2deg); }
+            20% { transform: translate(-20px, -20px) rotate(-2deg); }
+            40% { transform: translate(15px, 15px) rotate(1deg); }
+            60% { transform: translate(-10px, -10px) rotate(-1deg); }
+            80% { transform: translate(5px, 5px) rotate(0deg); }
+            100% { transform: translate(0, 0) rotate(0deg); }
+        }
 
-    .hexagon {
-      width: 100%;
-      height: 100%;
-      background: #FF5555;
-      /* Creates the hexagonal silhouette of a 3D D20 */
-      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-      position: absolute;
-      box-shadow: inset 0 0 30px rgba(0,0,0,0.6);
-    }
+        /* --- SKULL & BUTTON --- */
+        #interactive-zone {
+            position: absolute;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 40px;
+            transition: opacity 0.25s ease;
+        }
 
-    .d20-lines {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-      background: 
-        linear-gradient(to bottom right, transparent 48%, rgba(0,0,0,0.4) 49%, rgba(0,0,0,0.4) 51%, transparent 52%),
-        linear-gradient(to top right, transparent 48%, rgba(0,0,0,0.4) 49%, rgba(0,0,0,0.4) 51%, transparent 52%),
-        linear-gradient(to bottom, transparent 48%, rgba(0,0,0,0.4) 49%, rgba(0,0,0,0.4) 51%, transparent 52%);
-    }
+        #skull {
+            width: 300px;
+            height: 300px;
+            fill: var(--skull-color);
+            filter: drop-shadow(0px 0px 15px var(--skull-glow));
+            transition: filter 0.3s ease, transform 0.3s ease;
+            cursor: pointer;
+        }
+        
+        #skull:hover {
+            filter: drop-shadow(0px 0px 40px var(--skull-glow));
+            transform: scale(1.05);
+        }
 
-    #roll-number {
-      position: absolute;
-      font-size: 58px;
-      font-weight: bold;
-      color: white;
-      text-shadow: 2px 2px 5px rgba(0,0,0,0.9);
-      z-index: 2;
-    }
+        #action-btn {
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid var(--skull-glow);
+            border-radius: 5px; 
+            padding: 15px 50px;
+            font-size: 36px;
+            letter-spacing: 6px;
+            color: #fff;
+            text-shadow: 0 0 10px var(--skull-glow);
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.4), inset 0 0 15px rgba(255, 0, 0, 0.3);
+            transition: all 0.2s ease;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
 
-    /* Rolling Animation */
-    .rolling {
-      animation: spin-tumble 0.4s linear infinite;
-    }
+        .shake-level-1 {
+            animation: shake-1 0.15s infinite;
+            filter: drop-shadow(0px 0px 50px var(--skull-glow)) !important;
+        }
+        @keyframes shake-1 {
+            0% { transform: translate(3px, 3px) rotate(0deg); }
+            50% { transform: translate(-3px, -3px) rotate(-1deg); }
+            100% { transform: translate(3px, -3px) rotate(1deg); }
+        }
 
-    @keyframes spin-tumble {
-      0% { transform: rotate(0deg) scale(1); }
-      50% { transform: rotate(180deg) scale(1.1); }
-      100% { transform: rotate(360deg) scale(1); }
-    }
-  </style>
+        .shake-level-2 {
+            animation: shake-2 0.08s infinite !important;
+            filter: drop-shadow(0px 0px 100px #ff0000) !important;
+            transform: scale(1.3) !important;
+        }
+        @keyframes shake-2 {
+            0% { transform: translate(8px, 8px) rotate(0deg) scale(1.3); }
+            25% { transform: translate(-8px, -8px) rotate(-2deg) scale(1.3); }
+            50% { transform: translate(-8px, 8px) rotate(2deg) scale(1.3); }
+            75% { transform: translate(8px, -8px) rotate(0deg) scale(1.3); }
+            100% { transform: translate(4px, -4px) rotate(-2deg) scale(1.3); }
+        }
+
+        /* --- FLAWLESS NATIVE SVG D20 --- */
+        #dice-scene {
+            width: 150px;
+            height: 150px;
+            perspective: 1200px;
+            position: absolute;
+            z-index: 10;
+            display: none; 
+        }
+
+        #dice-trajectory {
+            width: 100%;
+            height: 100%;
+        }
+
+        #d20 {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 4.5s cubic-bezier(0.15, 0.85, 0.3, 1); 
+        }
+
+        .face {
+            position: absolute;
+            width: 150px;
+            height: 129.9px; 
+            transform-origin: 50% 66.666%; 
+            backface-visibility: hidden;
+        }
+
+        .face svg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            overflow: visible; 
+        }
+
+        .face polygon {
+            stroke: var(--dice-border);
+            stroke-width: 4px; 
+            stroke-linejoin: round;
+            filter: drop-shadow(0 0 8px var(--dice-border));
+        }
+
+        .text-node {
+            position: absolute;
+            top: 66.666%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--text-color);
+            font-size: 42px;
+            font-weight: bold;
+            text-shadow: 0 0 10px var(--text-glow), 0 0 20px var(--text-glow);
+            z-index: 2;
+        }
+
+        .down-text {
+            transform: translate(-50%, -50%) rotateZ(180deg);
+        }
+
+        /* --- FINAL TEXT --- */
+        #result-text {
+            position: absolute;
+            top: 10%;
+            width: 100%;
+            text-align: center;
+            font-size: 140px;
+            letter-spacing: 12px;
+            text-shadow: 0 0 40px var(--result-glow), 0 0 80px var(--result-glow), 0 0 120px #ffffff;
+            opacity: 0;
+            transform: scale(0.1) translateY(-100px);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 30;
+            background: rgba(0, 0, 0, 0.6);
+            border-top: 2px solid var(--result-glow);
+            border-bottom: 2px solid var(--result-glow);
+            padding: 20px 0;
+        }
+
+        .show-result {
+            opacity: 1 !important;
+            transform: scale(1) translateY(0) !important;
+        }
+
+        /* --- OMINOUS REROLL BUTTON --- */
+        #reroll-btn {
+            position: absolute;
+            bottom: 50%;
+            font-size: 20px;
+            letter-spacing: 10px;
+            color: #666;
+            background: rgba(0, 0, 0, 0.65);
+            border: 1px solid #ff0000;
+            padding: 15px 40px;
+            cursor: pointer;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 1.5s ease;
+            text-shadow: 0 0 10px #ff0000;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.1);
+            z-index: 40;
+            text-transform: uppercase;
+        }
+        
+        #reroll-btn:hover {
+            color: #fff;
+            background: rgba(255, 0, 0, 0.15);
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.6), inset 0 0 15px rgba(255,0,0,0.4);
+            border-color: #fff;
+            transition: all 0.2s ease;
+        }
+
+        .show-reroll {
+            opacity: 1 !important;
+            pointer-events: auto !important;
+        }
+    </style>
 </head>
-<body>
+<body class="ambient-pulse" id="bg-body">
 
-  <div id="doom-container">
-    
-    <!-- State 1: The Skull -->
-    <div id="state-start">
-      <svg class="skull-icon" viewBox="0 0 512 512">
-        <path d="M256 0C132.3 0 32 100.3 32 224c0 74.3 36.5 140 92.5 181.3l-10.2 61.4c-2.3 13.9 8.3 25.3 22.4 25.3h238.6c14.1 0 24.7-11.4 22.4-25.3l-10.2-61.4C443.5 364 480 298.3 480 224 480 100.3 379.7 0 256 0zm-80 304c-26.5 0-48-21.5-48-48s21.5-48 48-48 48 21.5 48 48-21.5 48-48 48zm160 0c-26.5 0-48-21.5-48-48s21.5-48 48-48 48 21.5 48 48-21.5 48-48 48z"/>
-      </svg>
-      <div class="prompt-text" id="main-prompt">Tempt Fate?</div>
+    <svg width="0" height="0" style="position: absolute; z-index: -1;">
+        <defs>
+            <radialGradient id="artifact-gradient" cx="50%" cy="66.66%" r="70%">
+                <stop offset="0%" stop-color="var(--dice-center-color)" />
+                <stop offset="100%" stop-color="var(--dice-edge-color)" />
+            </radialGradient>
+        </defs>
+    </svg>
+
+    <div id="dice-scene">
+        <div id="dice-trajectory">
+            <div id="d20"></div>
+        </div>
     </div>
 
-    <!-- State 2: The D20 Roll -->
-    <div id="d20-graphic">
-      <div class="hexagon"></div>
-      <div class="d20-lines"></div>
-      <div id="roll-number">20</div>
+    <div id="interactive-zone">
+        <svg id="skull" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+            <path d="M256 0C114.6 0 0 100.3 0 224c0 70.1 36.9 132.6 94.5 173.7 9.6 6.9 15.2 18.1 13.5 29.9l-9.4 66.2c-1.4 9.6 6 18.2 15.7 18.2H192v-50c0-14.3 11.7-26 26-26h76c14.3 0 26 11.7 26 26v50h77.7c9.7 0 17.1-8.6 15.7-18.2l-9.4-66.2c-1.7-11.7 3.8-23 13.5-29.9C475.1 356.6 512 294.1 512 224 512 100.3 397.4 0 256 0zM150.2 272c-26.6 0-48.2-21.6-48.2-48.2s21.6-48.2 48.2-48.2 48.2 21.6 48.2 48.2-21.6 48.2-48.2 48.2zm211.6 0c-26.6 0-48.2-21.6-48.2-48.2s21.6-48.2 48.2-48.2 48.2 21.6 48.2 48.2-21.6 48.2-48.2 48.2z"/>
+        </svg>
+        <div id="action-btn">ROLL TO SURVIVE</div>
     </div>
 
-  </div>
-
-  <script>
-    let isRolling = false;
-    let rollInterval;
+    <div id="result-text">DOOM</div>
     
-    const stateStart = document.getElementById('state-start');
-    const d20Graphic = document.getElementById('d20-graphic');
-    const rollNumber = document.getElementById('roll-number');
-    const mainPrompt = document.getElementById('main-prompt');
+    <div id="reroll-btn">TEMPT FATE ONCE MORE</div>
 
-    // 1. Listen for remote Evmux / Dashboard commands
-    window.addEventListener('message', (event) => {
-      if (event.data === 'ROLL_DICE' && !isRolling) {
-        startRoll();
-      }
-    });
+    <script>
+        // --- 0. AUTO-DETECT OVERLAY IFRAME VS STANDALONE PAGE ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const isEmbedded = (window.self !== window.top) || (urlParams.get('transparent') === '1');
+        if (isEmbedded) {
+            document.getElementById('bg-body').classList.add('overlay-mode');
+            document.getElementById('bg-body').classList.remove('ambient-pulse');
+        }
 
-    // 2. Direct Webpage Interaction
-    document.body.addEventListener('click', () => {
-      if (!isRolling) {
-        startRoll();
-      }
-    });
+        // --- 1. CRYPTOGRAPHIC RANDOM NUMBER GENERATOR ---
+        function getTrueRandom(min, max) {
+            const array = new Uint32Array(1);
+            window.crypto.getRandomValues(array);
+            const decimal = array[0] / 4294967295; 
+            return Math.floor(decimal * (max - min + 1)) + min;
+        }
 
-    function startRoll() {
-      isRolling = true;
-      
-      // Hide the skull, show the D20
-      stateStart.style.display = 'none';
-      d20Graphic.style.display = 'flex';
-      
-      // Remove the prompt text while it spins
-      mainPrompt.innerText = "";
-      stateStart.style.display = 'block'; // Keep container sized
-      document.querySelector('.skull-icon').style.display = 'none';
-      
-      // Add CSS spin animation
-      d20Graphic.classList.add('rolling');
+        // --- 2. BUILD THE FLAWLESS D20 GEOMETRY ---
+        const d20 = document.getElementById('d20');
+        const facesData = [];
+        const Z_OFFSET = 113.4; 
 
-      // Rapidly cycle numbers to simulate a roll
-      rollInterval = setInterval(() => {
-        rollNumber.innerText = Math.floor(Math.random() * 20) + 1;
-      }, 50);
+        const top5 = [20, 2, 14, 8, 11];
+        const midUp5 = [18, 4, 16, 6, 12];
+        const midLow5 = [15, 9, 3, 17, 5];
+        const bottom5 = [13, 10, 1, 19, 7];
 
-      // Stop the roll after 2 seconds
-      setTimeout(() => {
-        clearInterval(rollInterval);
-        d20Graphic.classList.remove('rolling');
+        for(let i=0; i<5; i++) facesData.push({ n: top5[i], y: i*72, x: 52.6226, flip: false });
+        for(let i=0; i<5; i++) facesData.push({ n: midUp5[i], y: i*72, x: 10.8123, flip: true });
+        for(let i=0; i<5; i++) facesData.push({ n: midLow5[i], y: i*72 + 36, x: -10.8123, flip: false });
+        for(let i=0; i<5; i++) facesData.push({ n: bottom5[i], y: i*72 + 36, x: -52.6226, flip: true });
+
+        facesData.forEach(f => {
+            const face = document.createElement('div');
+            face.className = 'face';
+            face.style.transform = `rotateY(${f.y}deg) rotateX(${f.x}deg) translateZ(${Z_OFFSET}px) ${f.flip ? 'rotateZ(180deg)' : ''}`;
+            
+            face.innerHTML = `
+                <svg viewBox="0 0 150 129.9">
+                    <polygon points="75,0 0,129.9 150,129.9" fill="url(#artifact-gradient)" />
+                </svg>
+                <span class="text-node ${f.flip ? 'down-text' : ''}">${f.n}</span>
+            `;
+            d20.appendChild(face);
+        });
+
+        // --- 3. THE CINEMATIC LOGIC ---
+        let isRolling = false;
+
+        const skull = document.getElementById('skull');
+        const btn = document.getElementById('action-btn');
+        const rerollBtn = document.getElementById('reroll-btn');
+        const interactiveZone = document.getElementById('interactive-zone');
+        const resultText = document.getElementById('result-text');
+        const bgBody = document.getElementById('bg-body');
         
-        // Final D20 result (1-20)
-        const finalResult = Math.floor(Math.random() * 20) + 1;
-        rollNumber.innerText = finalResult;
+        const diceScene = document.getElementById('dice-scene');
+        const diceTrajectory = document.getElementById('dice-trajectory');
 
-        // Restore the "Tempt Fate Again" text
-        mainPrompt.innerText = "Tempt Fate Again";
+        skull.addEventListener('click', startSequence);
+        btn.addEventListener('click', startSequence);
         
-        isRolling = false;
-      }, 2000);
-    }
-  </script>
+        // Manual Reset Trigger (Standalone click)
+        rerollBtn.addEventListener('click', resetSequence);
+
+        // Remote Control Listener (From overlay.html / Dashboard)
+        window.addEventListener('message', (event) => {
+            if (event.data === 'ROLL_DICE' || (event.data && event.data.type === 'ROLL_DICE')) {
+                startSequence();
+            } else if (event.data === 'RESET_DICE' || (event.data && event.data.type === 'RESET_DICE')) {
+                if (!isRolling) resetSequence();
+            }
+        });
+
+        function startSequence() {
+            if(isRolling) return; 
+            isRolling = true;
+
+            // Ensure clean state even if triggered remotely while a prior result is still displayed
+            bgBody.classList.remove('flash-white', 'impact-shake');
+            void bgBody.offsetWidth; // Force reflow so animations can re-trigger cleanly
+            skull.classList.remove('shake-level-2');
+            interactiveZone.style.opacity = "1";
+            interactiveZone.style.pointerEvents = "auto";
+            btn.style.boxShadow = "0 0 20px rgba(255, 0, 0, 0.4), inset 0 0 15px rgba(255, 0, 0, 0.3)";
+
+            // PHASE 1: SUMMON
+            btn.innerText = "SUMMONING...";
+            btn.style.color = "#ffffff";
+            btn.style.borderColor = "#ffffff";
+            skull.classList.add('shake-level-1');
+            resultText.classList.remove('show-result');
+            diceScene.style.display = "none";
+            rerollBtn.classList.remove('show-reroll');
+            
+            d20.style.transition = "none";
+            d20.style.transform = `rotateX(0deg) rotateY(0deg) rotateZ(0deg)`;
+
+            // PHASE 2: ESCALATION
+            setTimeout(() => {
+                btn.innerText = "DOOM IS IMMINENT!";
+                btn.style.color = "#ff0000";
+                btn.style.borderColor = "#ff0000";
+                btn.style.boxShadow = "0 0 40px #ff0000";
+                skull.classList.remove('shake-level-1');
+                skull.classList.add('shake-level-2');
+            }, 1500);
+
+            // PHASE 3: THE DROP & GRAVITY RICOCHET
+            setTimeout(() => {
+                bgBody.classList.add('flash-white');
+                interactiveZone.style.opacity = "0";
+                interactiveZone.style.pointerEvents = "none";
+                diceScene.style.display = "block";
+
+                diceTrajectory.animate([
+                    { transform: 'translate(-40vw, -50vh) scale(0.1)', offset: 0, easing: 'ease-in' }, 
+                    { transform: 'translate(15vw, 20vh) scale(1.8)', offset: 0.25, easing: 'ease-out' }, 
+                    { transform: 'translate(-5vw, -10vh) scale(1.4)', offset: 0.45, easing: 'ease-in' }, 
+                    { transform: 'translate(10vw, 25vh) scale(1.1)', offset: 0.65, easing: 'ease-out' },
+                    { transform: 'translate(-5vw, 15vh) scale(1.05)', offset: 0.85, easing: 'ease-in' },
+                    { transform: 'translate(0vw, 25vh) scale(1)', offset: 1 }        
+                ], {
+                    duration: 4500, 
+                    fill: 'forwards'
+                });
+
+                const finalNumber = getTrueRandom(1, 20);
+                const targetFace = facesData.find(f => f.n === finalNumber);
+                
+                const randomSpinsX = (getTrueRandom(6, 9)) * 360; 
+                const randomSpinsY = (getTrueRandom(6, 9)) * 360;
+                const randomSpinsZ = (getTrueRandom(6, 9)) * 360; 
+
+                const targetX = randomSpinsX - targetFace.x; 
+                const targetY = randomSpinsY - targetFace.y;
+                const targetZ = randomSpinsZ; 
+
+                setTimeout(() => {
+                    d20.style.transition = "transform 4.5s cubic-bezier(0.15, 0.85, 0.3, 1)";
+                    d20.style.transform = `rotateX(${targetX}deg) rotateY(${targetY}deg) rotateZ(${targetZ}deg)`;
+                }, 50);
+
+                // PHASE 4: REVEAL
+                setTimeout(() => {
+                    bgBody.classList.add('impact-shake');
+                    
+                    if(finalNumber === 1) {
+                        resultText.innerText = "CRITICAL FAIL! (1)";
+                    } else if (finalNumber === 20) {
+                        resultText.innerText = "NATURAL 20!";
+                    } else {
+                        resultText.innerText = "YOU ROLLED A " + finalNumber;
+                    }
+                    
+                    resultText.classList.add('show-result');
+
+                    // PHASE 5: THE OMINOUS ASK
+                    setTimeout(() => {
+                        rerollBtn.classList.add('show-reroll');
+                    }, 1500); 
+
+                }, 4500); 
+
+            }, 3000); 
+        }
+
+        // --- 4. THE MANUAL RESET ---
+        function resetSequence() {
+            resultText.classList.remove('show-result');
+            rerollBtn.classList.remove('show-reroll');
+            bgBody.classList.remove('flash-white', 'impact-shake');
+            diceScene.style.display = "none";
+            
+            skull.classList.remove('shake-level-2');
+            interactiveZone.style.opacity = "1";
+            interactiveZone.style.pointerEvents = "auto";
+            
+            btn.innerText = "ROLL TO SURVIVE";
+            btn.style.color = "#fff";
+            btn.style.borderColor = "var(--skull-glow)";
+            btn.style.boxShadow = "0 0 20px rgba(255, 0, 0, 0.4)";
+            
+            isRolling = false;
+        }
+    </script>
 </body>
 </html>
