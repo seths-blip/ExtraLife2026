@@ -154,7 +154,13 @@
     });
 
     const topicName = `extralife2026/${teamID}/commands`;
-    const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt'); 
+    const mqttOptions = {
+        clientId: 'overlay_' + Math.random().toString(16).substring(2, 10),
+        keepalive: 60,
+        reconnectPeriod: 1000,
+        clean: true
+    };
+    const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt', mqttOptions); 
     let processedAlerts = []; 
     
     client.on('connect', () => { client.subscribe(topicName); client.publish(topicName, JSON.stringify({ type: 'request_sync' })); });
