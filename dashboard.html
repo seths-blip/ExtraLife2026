@@ -121,7 +121,7 @@
       <div class="control-group">
         <label>Art URL</label>
         <div class="input-box">
-          <input type="text" id="np-art" placeholder="images/...">
+          <input type="text" id="np-art" placeholder="stream-player/images/...">
         </div>
       </div>
       <button class="btn-special" onclick="triggerCustomNowPlaying()" style="margin-top: 10px;">▶ PUSH MANUAL TRACK</button>
@@ -178,7 +178,7 @@
           <input type="number" id="alert-amount" placeholder="Amount">
         </div>
       </div>
-      <button onclick="sendManualAlert()">Push Alert to Stream</button>
+      <button onclick="sendManualAlert(0)">Push Alert to Stream</button>
       <hr>
       <div class="control-group">
         <label>Enable Sounds</label>
@@ -192,6 +192,11 @@
           <input type="checkbox" id="effect-visual" checked onchange="updateConfig()">
         </div>
       </div>
+      <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <button onclick="sendManualAlert(5)">Test $5</button>
+        <button onclick="sendManualAlert(25)">Test $25</button>
+        <button onclick="sendManualAlert(50)">Test $50</button>
+      </div>
       <button class="btn-special" style="margin-top:auto;" onclick="sendPayload('confetti', null)">🎉 FIRE CONFETTI CANNON</button>
     </div>
 
@@ -200,11 +205,11 @@
   <script>
     const teamID = "74089"; 
     const topicName = `extralife2026/${teamID}/commands`;
-    
     const myClientID = 'dash_' + Math.random().toString(36).substring(2, 10);
     const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt', { clientId: myClientID, clean: true });
     
     let isNetworkSyncing = false;
+    let loadedPlaylist = [];
 
     const fallbackPlaylist = [
       { "title": "A Sorcerers Last Hope", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },  
@@ -271,31 +276,26 @@
     }
 
     async function fetchPlaylist() {
-        // Use a relative path so it resolves cleanly whether on GitHub Pages or local
-        const url = `stream-player/playlist.json?t=${Date.now()}`;
+        const url = `./stream-player/playlist.json?t=${Date.now()}`;
         const container = document.getElementById('playlist-container');
-        let tracks = [];
         
         try {
             const res = await fetch(url);
             if (!res.ok) throw new Error("JSON not found");
             const data = await res.json();
-            tracks = Array.isArray(data) ? data : (data.tracks || data.playlist || data.songs || []);
-            if (tracks.length === 0) throw new Error("Empty array");
+            loadedPlaylist = Array.isArray(data) ? data : (data.tracks || data.playlist || data.songs || []);
+            if (loadedPlaylist.length === 0) throw new Error("Empty array");
         } catch (e) {
-            console.warn("Could not load JSON. Activating embedded fallback.");
-            tracks = fallbackPlaylist;
+            console.warn("Could not load JSON locally. Activating embedded fallback.");
+            loadedPlaylist = fallbackPlaylist;
         }
 
         container.innerHTML = '';
-        tracks.forEach(track => {
+        loadedPlaylist.forEach((track, index) => {
             const title = track.title || track.name || "Unknown Track";
             const artist = track.artist || track.author || track.creator || "Unknown Artist";
-            
-            // Fix: Send the EXACT path from the JSON to the overlay without modifying it
-            let art = track.art || track.artwork || track.cover || track.image || "stream-player/images/image_ef100c.png";
-            
-            // Fix: Only build the display URL for the dashboard, leave the payload URL alone
+            const art = track.art || track.artwork || track.cover || track.image || "stream-player/images/image_ef100c.png";
+
             let displayArt = art;
             if (!displayArt.startsWith("http") && !displayArt.startsWith("stream-player/")) {
                 displayArt = "stream-player/" + displayArt;
@@ -303,20 +303,15 @@
 
             const div = document.createElement('div');
             div.className = 'playlist-card';
+            // BUG SQUASHED: Nullify onerror so missing images don't infinite loop
             div.innerHTML = `
-              <img src="${displayArt}" class="playlist-art" alt="art" onerror="this.src='stream-player/images/image_ef100c.png'">
+              <img src="${displayArt}" class="playlist-art" alt="art" onerror="this.onerror=null; this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';">
               <span class="playlist-title">${title}</span>
               <span class="playlist-artist">${artist}</span>
             `;
             
             div.onclick = () => {
-                sendPayload('now_playing', {
-                    title: title,
-                    artist: artist,
-                    art: art, // Sends the raw path directly
-                    pos: document.getElementById('np-pos').value
-                });
-                
+                sendPayload('now_playing', { title: title, artist: artist, art: art, pos: document.getElementById('np-pos').value });
                 div.style.borderColor = "#D4AF37";
                 setTimeout(() => div.style.borderColor = "transparent", 800);
             };
@@ -419,11 +414,13 @@
       sendPayload('stage_ticker', { text, loops });
     }
 
-    function sendManualAlert() {
-      const name = document.getElementById('alert-name').value || "Anonymous"; 
-      const amount = document.getElementById('alert-amount').value || "0";
-      sendPayload('alert', { name: name, amount: amount, timestamp: Date.now() });
-      document.getElementById('alert-name').value = ""; document.getElementById('alert-amount').value = "";
+    function sendManualAlert(defaultAmount) {
+      const name = document.getElementById('alert-name').value || "Test Hero"; 
+      const amount = document.getElementById('alert-amount').value || defaultAmount || 5;
+      sendPayload('alert', { id: 'TEST_' + Date.now(), name: name, amount: amount, timestamp: Date.now() });
+      if (document.getElementById('alert-amount').value) {
+          document.getElementById('alert-name').value = ""; document.getElementById('alert-amount').value = "";
+      }
     }
 
     window.addEventListener('load', () => { 
