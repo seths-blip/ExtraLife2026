@@ -14,7 +14,6 @@
     #status { font-weight: bold; color: #FF5555; margin-bottom: 25px; text-transform: uppercase; letter-spacing: 1px; }
     .connected { color: #55FF55 !important; text-shadow: 0 0 10px #55FF55; }
 
-    /* Compact Grid Layout restored */
     #dashboard-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
@@ -30,7 +29,7 @@
     }
     h2 { margin-top: 0; color: #55FF55; border-bottom: 1px solid #444; padding-bottom: 10px; font-size: 20px; text-transform: uppercase; letter-spacing: 2px; }
     
-    .control-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .control-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     label { font-size: 16px; font-weight: bold; }
     
     input[type="text"], input[type="number"], input[type="datetime-local"], select {
@@ -39,7 +38,6 @@
     }
     select { width: 100%; cursor: pointer; }
     
-    /* Toggle Switch */
     .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
     .switch input { opacity: 0; width: 0; height: 0; }
     .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #555; transition: .4s; border-radius: 34px; }
@@ -68,6 +66,7 @@
   <div id="status">MQTT Status: Connecting...</div>
 
   <div id="dashboard-grid">
+    
     <!-- GLOBAL SETTINGS -->
     <div class="panel">
       <h2>Global Settings & Timers</h2>
@@ -79,13 +78,19 @@
       <input type="datetime-local" id="marathon-end" onchange="updateTimer()">
     </div>
 
-    <!-- WIDGET TOGGLES -->
+    <!-- WIDGET TOGGLES & URL INPUTS -->
     <div class="panel">
-      <h2>Widget Visibility</h2>
+      <h2>Widget Visibility & Sources</h2>
       <div class="control-group"><label>Top Clock</label><label class="switch"><input type="checkbox" id="show-clock" checked onchange="sendConfig()"><span class="slider"></span></label></div>
       <div class="control-group"><label>Bottom Ticker</label><label class="switch"><input type="checkbox" id="show-ticker" checked onchange="sendConfig()"><span class="slider"></span></label></div>
+      
+      <hr style="border: 1px solid #444; margin: 15px 0;">
+      
       <div class="control-group"><label>Band Effects Layer</label><label class="switch"><input type="checkbox" id="show-band" checked onchange="sendConfig()"><span class="slider"></span></label></div>
+      <input type="text" id="band-url" value="./band-effects.html" placeholder="Band Effects URL" onchange="sendConfig()">
+      
       <div class="control-group"><label>Dice of Doom Layer</label><label class="switch"><input type="checkbox" id="show-dice" checked onchange="sendConfig()"><span class="slider"></span></label></div>
+      <input type="text" id="dice-url" value="./dice.html?transparent=1" placeholder="Dice of Doom URL" onchange="sendConfig()">
     </div>
 
     <!-- CUSTOM TICKER -->
@@ -143,14 +148,13 @@
     const topic = `extralife2026/${teamID}/commands`;
     let loadedPlaylist = [];
     
-    // Explicit, unique Client ID to prevent dropped connections
+    // Hardened MQTT options prevent drops while allowing manual override
     const mqttOptions = {
         clientId: 'dash_' + Math.random().toString(16).substring(2, 10),
         keepalive: 60,
         reconnectPeriod: 1000,
         clean: true
     };
-    
     const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt', mqttOptions);
     
     client.on('connect', () => {
@@ -193,7 +197,7 @@
                 dropdown.appendChild(opt);
             });
         } catch(err) {
-            console.warn("Could not load playlist.json automatically. Manual entry is active.");
+            console.warn("Playlist JSON blocked locally. Manual inputs remain active.");
         }
     }
 
@@ -205,12 +209,13 @@
         }
     }
 
-    // Config is sent with "retain: true". The public server memorizes this state.
-    // If the overlay refreshes, the server instantly beams this state to it.
     function sendConfig() {
       if(!client.connected) return;
       const endTimeValue = document.getElementById('marathon-end').value;
       const targetTimeMs = endTimeValue ? new Date(endTimeValue).getTime() : (new Date().getTime() + 86400000);
+      
+      const bandUrl = document.getElementById('band-url').value;
+      const diceUrl = document.getElementById('dice-url').value;
 
       const payload = {
         type: 'config', 
@@ -220,20 +225,20 @@
           alerts: { pos: 'center' },
           targetTime: targetTimeMs,
           effects: { sound: document.getElementById('enable-sound').checked, visual: true },
-          bandEffects: { show: document.getElementById('show-band').checked, url: './band-effects.html', pos: 'center', width: 1920, height: 1080 },
-          diceOfDoom: { show: document.getElementById('show-dice').checked, url: './dice.html?transparent=1', pos: 'center', width: 1920, height: 1080 }
+          bandEffects: { show: document.getElementById('show-band').checked, url: bandUrl, pos: 'center', width: 1920, height: 1080 },
+          diceOfDoom: { show: document.getElementById('show-dice').checked, url: diceUrl, pos: 'center', width: 1920, height: 1080 }
         }
       };
       
+      // Retained ensures Evmux gets the correct timer target even if it crashes and reloads
       client.publish(topic, JSON.stringify(payload), { retain: true, qos: 1 });
     }
 
-    // Interactive commands are sent with QoS 1 (Guaranteed Delivery) but NOT retained.
     function sendTickerMessage() {
       if(!client.connected) return;
       const text = document.getElementById('ticker-msg').value;
       if (text.trim() === "") return;
-      client.publish(topic, JSON.stringify({ type: 'stage_ticker', payload: { text: text, loops: parseInt(document.getElementById('ticker-loops').value) || 3 } }), { qos: 1 });
+      client.publish(topic, JSON.stringify({ type: 'stage_ticker', payload: { text: text, loops: parseInt(document.getElementById('ticker-loops').value) || 3 } }));
       document.getElementById('ticker-msg').value = "";
     }
 
@@ -242,11 +247,11 @@
       client.publish(topic, JSON.stringify({ 
         type: 'now_playing', 
         payload: { title: document.getElementById('np-title').value || "Track", artist: document.getElementById('np-artist').value || "Artist", pos: 'top-left' } 
-      }), { qos: 1 });
+      }));
     }
 
     function fireConfetti() {
-      if(client.connected) client.publish(topic, JSON.stringify({ type: 'confetti' }), { qos: 1 });
+      if(client.connected) client.publish(topic, JSON.stringify({ type: 'confetti' }));
     }
 
     function sendTestAlert(amount) {
@@ -255,11 +260,11 @@
       client.publish(topic, JSON.stringify({ 
           type: 'alert', 
           payload: { id: 'TEST_' + Date.now(), name: customName, amount: amount, timestamp: Date.now() } 
-      }), { qos: 1 });
+      }));
     }
 
     function controlDice(command) {
-      if(client.connected) client.publish(topic, JSON.stringify({ type: 'dice_roll', payload: command }), { qos: 1 });
+      if(client.connected) client.publish(topic, JSON.stringify({ type: 'dice_roll', payload: command }));
     }
   </script>
 </body>
