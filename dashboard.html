@@ -10,28 +10,45 @@
       background-color: #111; color: #FFF; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center;
     }
-    h1 { color: #D4AF37; font-family: 'VT323', monospace; font-size: 48px; margin-bottom: 10px; text-shadow: 0 0 10px #D4AF37; }
-    .panel { background: #222; border: 2px solid #D4AF37; border-radius: 10px; padding: 20px; width: 100%; max-width: 600px; margin-bottom: 20px; box-shadow: 0 0 15px rgba(0,0,0,0.8); }
+    h1 { color: #D4AF37; font-family: 'VT323', monospace; font-size: 48px; margin-bottom: 5px; text-shadow: 0 0 10px #D4AF37; }
+    #status { font-weight: bold; color: #FF5555; margin-bottom: 25px; text-transform: uppercase; letter-spacing: 1px; }
+    .connected { color: #55FF55 !important; text-shadow: 0 0 10px #55FF55; }
+
+    /* Compact Grid Layout restored */
+    #dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 20px;
+      width: 100%;
+      max-width: 1400px;
+      align-items: start;
+    }
+
+    .panel { 
+      background: #222; border: 2px solid #D4AF37; border-radius: 10px; padding: 20px; 
+      box-shadow: 0 0 15px rgba(0,0,0,0.8); box-sizing: border-box; width: 100%;
+    }
     h2 { margin-top: 0; color: #55FF55; border-bottom: 1px solid #444; padding-bottom: 10px; font-size: 20px; text-transform: uppercase; letter-spacing: 2px; }
     
     .control-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-    label { font-size: 18px; font-weight: bold; }
+    label { font-size: 16px; font-weight: bold; }
     
     input[type="text"], input[type="number"], input[type="datetime-local"], select {
       width: calc(100% - 24px); padding: 10px; margin-bottom: 15px; background: #333; color: #FFF; 
-      border: 1px solid #55FF55; border-radius: 5px; font-size: 16px;
+      border: 1px solid #55FF55; border-radius: 5px; font-size: 16px; box-sizing: border-box;
     }
     select { width: 100%; cursor: pointer; }
     
-    .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+    /* Toggle Switch */
+    .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
     .switch input { opacity: 0; width: 0; height: 0; }
     .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #555; transition: .4s; border-radius: 34px; }
-    .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+    .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
     input:checked + .slider { background-color: #55FF55; box-shadow: 0 0 10px #55FF55; }
-    input:checked + .slider:before { transform: translateX(22px); }
+    input:checked + .slider:before { transform: translateX(20px); }
 
     button {
-      background: #333; color: #FFF; border: 2px solid #55FF55; padding: 10px 20px; font-size: 16px; 
+      background: #333; color: #FFF; border: 2px solid #55FF55; padding: 10px 15px; font-size: 14px; 
       font-weight: bold; border-radius: 5px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; width: 100%; margin-bottom: 10px;
     }
     button:hover { background: #55FF55; color: #000; box-shadow: 0 0 15px #55FF55; }
@@ -42,94 +59,105 @@
     .btn-gold:hover { background: #D4AF37; color: #000; box-shadow: 0 0 15px #D4AF37; }
     .flex-row { display: flex; gap: 10px; }
     
-    #status { font-weight: bold; color: #FF5555; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
-    .connected { color: #55FF55 !important; text-shadow: 0 0 10px #55FF55; }
+    .sync-btn-container { width: 100%; max-width: 1400px; margin-top: 20px; display: flex; justify-content: center; }
   </style>
 </head>
 <body>
 
   <h1>Control Room</h1>
-  <div id="status">MQTT Status: Disconnected</div>
+  <div id="status">MQTT Status: Connecting...</div>
 
-  <!-- GLOBAL SETTINGS -->
-  <div class="panel">
-    <h2>Global Settings & Timers</h2>
-    <div class="control-group">
-      <label>Global Sound Effects</label>
-      <label class="switch"><input type="checkbox" id="enable-sound" checked onchange="sendConfig()"><span class="slider"></span></label>
+  <div id="dashboard-grid">
+    <!-- GLOBAL SETTINGS -->
+    <div class="panel">
+      <h2>Global Settings & Timers</h2>
+      <div class="control-group">
+        <label>Global Sound Effects</label>
+        <label class="switch"><input type="checkbox" id="enable-sound" checked onchange="sendConfig()"><span class="slider"></span></label>
+      </div>
+      <label style="font-size: 14px; color: #AAA;">Marathon End Time (Countdown Target):</label>
+      <input type="datetime-local" id="marathon-end" onchange="updateTimer()">
     </div>
-    <label style="font-size: 14px; color: #AAA;">Marathon End Time (Countdown Target):</label>
-    <input type="datetime-local" id="marathon-end" onchange="updateTimer()">
-  </div>
 
-  <!-- WIDGET TOGGLES -->
-  <div class="panel">
-    <h2>Widget Visibility</h2>
-    <div class="control-group"><label>Top Clock</label><label class="switch"><input type="checkbox" id="show-clock" checked onchange="sendConfig()"><span class="slider"></span></label></div>
-    <div class="control-group"><label>Bottom Ticker</label><label class="switch"><input type="checkbox" id="show-ticker" checked onchange="sendConfig()"><span class="slider"></span></label></div>
-    <div class="control-group"><label>Band Effects Layer</label><label class="switch"><input type="checkbox" id="show-band" checked onchange="sendConfig()"><span class="slider"></span></label></div>
-    <div class="control-group"><label>Dice of Doom Layer</label><label class="switch"><input type="checkbox" id="show-dice" checked onchange="sendConfig()"><span class="slider"></span></label></div>
-  </div>
-
-  <!-- CUSTOM TICKER -->
-  <div class="panel">
-    <h2>Stage Custom Ticker</h2>
-    <input type="text" id="ticker-msg" placeholder="ENTER CUSTOM MESSAGE (e.g. WE REACHED $500!)">
-    <div class="control-group" style="justify-content: flex-start; gap: 15px;">
-      <label style="font-size: 14px; color: #AAA;">Number of Loops:</label>
-      <input type="number" id="ticker-loops" value="3" min="1" max="20" style="width: 80px; margin-bottom: 0;">
+    <!-- WIDGET TOGGLES -->
+    <div class="panel">
+      <h2>Widget Visibility</h2>
+      <div class="control-group"><label>Top Clock</label><label class="switch"><input type="checkbox" id="show-clock" checked onchange="sendConfig()"><span class="slider"></span></label></div>
+      <div class="control-group"><label>Bottom Ticker</label><label class="switch"><input type="checkbox" id="show-ticker" checked onchange="sendConfig()"><span class="slider"></span></label></div>
+      <div class="control-group"><label>Band Effects Layer</label><label class="switch"><input type="checkbox" id="show-band" checked onchange="sendConfig()"><span class="slider"></span></label></div>
+      <div class="control-group"><label>Dice of Doom Layer</label><label class="switch"><input type="checkbox" id="show-dice" checked onchange="sendConfig()"><span class="slider"></span></label></div>
     </div>
-    <button onclick="sendTickerMessage()">Push to Stream</button>
-  </div>
 
-  <!-- NOW PLAYING OVERRIDE WITH PLAYLIST PARSER -->
-  <div class="panel">
-    <h2>Now Playing Override</h2>
-    <select id="playlist-dropdown" onchange="populateMusicFields()">
-        <option value="">-- Load from playlist.json --</option>
-    </select>
-    <input type="text" id="np-title" placeholder="Track Title">
-    <input type="text" id="np-artist" placeholder="Artist Name">
-    <button class="btn-gold" onclick="sendNowPlaying()">Show Now Playing Graphic</button>
-  </div>
+    <!-- CUSTOM TICKER -->
+    <div class="panel">
+      <h2>Stage Custom Ticker</h2>
+      <input type="text" id="ticker-msg" placeholder="ENTER MESSAGE (e.g. WE HIT $500!)">
+      <div class="control-group" style="justify-content: flex-start; gap: 15px;">
+        <label style="font-size: 14px; color: #AAA;">Number of Loops:</label>
+        <input type="number" id="ticker-loops" value="3" min="1" max="20" style="width: 80px; margin-bottom: 0;">
+      </div>
+      <button onclick="sendTickerMessage()">Push to Stream</button>
+    </div>
 
-  <!-- DICE OF DOOM -->
-  <div class="panel">
-    <h2>Dice of Doom Controls</h2>
-    <div class="flex-row">
-      <button class="btn-red" onclick="controlDice('ROLL_DICE')">🎲 Roll Dice 🎲</button>
-      <button onclick="controlDice('RESET_DICE')">Reset to Skull</button>
+    <!-- NOW PLAYING OVERRIDE -->
+    <div class="panel">
+      <h2>Now Playing Override</h2>
+      <select id="playlist-dropdown" onchange="populateMusicFields()">
+          <option value="">-- Load from playlist.json --</option>
+      </select>
+      <input type="text" id="np-title" placeholder="Track Title">
+      <input type="text" id="np-artist" placeholder="Artist Name">
+      <button class="btn-gold" onclick="sendNowPlaying()">Show Now Playing Graphic</button>
+    </div>
+
+    <!-- DICE OF DOOM -->
+    <div class="panel">
+      <h2>Dice of Doom Controls</h2>
+      <div class="flex-row">
+        <button class="btn-red" onclick="controlDice('ROLL_DICE')">🎲 Roll Dice 🎲</button>
+        <button onclick="controlDice('RESET_DICE')">Reset to Skull</button>
+      </div>
+    </div>
+
+    <!-- MANUAL ALERTS -->
+    <div class="panel">
+      <h2>Manual Triggers & Tests</h2>
+      <button class="btn-red" onclick="fireConfetti()" style="margin-bottom: 20px;">🎉 Fire Confetti Cannon 🎉</button>
+      <label style="font-size: 14px; color: #AAA;">Custom Test Alert Name:</label>
+      <input type="text" id="test-alert-name" placeholder="Donor Name (e.g., PixelPaladin)" value="Test Hero">
+      <p style="color: #AAA; font-size: 14px; margin-top: -5px; margin-bottom: 10px;">Test Visual Alert Tiers:</p>
+      <div class="flex-row">
+        <button onclick="sendTestAlert(5)">Test $5</button>
+        <button onclick="sendTestAlert(25)">Test $25</button>
+        <button class="btn-gold" onclick="sendTestAlert(50)">Test $50</button>
+      </div>
     </div>
   </div>
 
-  <!-- MANUAL ALERTS -->
-  <div class="panel">
-    <h2>Manual Triggers & Tests</h2>
-    <button class="btn-red" onclick="fireConfetti()" style="margin-bottom: 20px;">🎉 Fire Confetti Cannon 🎉</button>
-    <p style="color: #AAA; font-size: 14px; margin-top: -5px; margin-bottom: 10px;">Test Visual Alert Tiers:</p>
-    <div class="flex-row">
-      <button onclick="sendTestAlert(5)">Test $5 (Lighters)</button>
-      <button onclick="sendTestAlert(25)">Test $25 (Confetti)</button>
-      <button class="btn-gold" onclick="sendTestAlert(50)">Test $50 (Stage)</button>
-    </div>
+  <div class="sync-btn-container">
+    <button class="btn-gold" style="width: 100%; max-width: 400px;" onclick="sendConfig()">Force Global Resync</button>
   </div>
-
-  <button class="btn-gold" style="max-width: 600px;" onclick="sendConfig()">Force Global Resync</button>
 
   <script>
     const teamID = "74089";
     const topic = `extralife2026/${teamID}/commands`;
     let loadedPlaylist = [];
     
-    const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
+    // Explicit, unique Client ID to prevent dropped connections
+    const mqttOptions = {
+        clientId: 'dash_' + Math.random().toString(16).substring(2, 10),
+        keepalive: 60,
+        reconnectPeriod: 1000,
+        clean: true
+    };
     
-    // 1. Initialize Dashboard State
+    const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt', mqttOptions);
+    
     client.on('connect', () => {
       document.getElementById('status').innerText = "MQTT Status: Connected & Live";
       document.getElementById('status').classList.add('connected');
       client.subscribe(topic);
       
-      // Load saved timer to prevent refresh-amnesia
       const savedTime = localStorage.getItem('extralife_marathon_end');
       if (savedTime) {
           document.getElementById('marathon-end').value = savedTime;
@@ -152,10 +180,10 @@
         sendConfig();
     }
 
-    // 2. Playlist.json Loader
     async function loadPlaylist() {
         try {
             const res = await fetch('./playlist.json');
+            if (!res.ok) throw new Error("File not found");
             loadedPlaylist = await res.json();
             const dropdown = document.getElementById('playlist-dropdown');
             loadedPlaylist.forEach((track, index) => {
@@ -165,7 +193,7 @@
                 dropdown.appendChild(opt);
             });
         } catch(err) {
-            console.error("Could not load playlist.json. Ensure formatting is correct.", err);
+            console.warn("Could not load playlist.json automatically. Manual entry is active.");
         }
     }
 
@@ -177,31 +205,35 @@
         }
     }
 
-    // 3. Network Commands
+    // Config is sent with "retain: true". The public server memorizes this state.
+    // If the overlay refreshes, the server instantly beams this state to it.
     function sendConfig() {
       if(!client.connected) return;
       const endTimeValue = document.getElementById('marathon-end').value;
       const targetTimeMs = endTimeValue ? new Date(endTimeValue).getTime() : (new Date().getTime() + 86400000);
 
-      client.publish(topic, JSON.stringify({ 
-          type: 'config', 
-          payload: {
-            clock: { show: document.getElementById('show-clock').checked, pos: 'top-right', scale: 1 },
-            ticker: { show: document.getElementById('show-ticker').checked, showProgressBar: true },
-            alerts: { pos: 'center' },
-            targetTime: targetTimeMs,
-            effects: { sound: document.getElementById('enable-sound').checked, visual: true },
-            bandEffects: { show: document.getElementById('show-band').checked, url: './band-effects.html', pos: 'center', width: 1920, height: 1080 },
-            diceOfDoom: { show: document.getElementById('show-dice').checked, url: './dice.html?transparent=1', pos: 'center', width: 1920, height: 1080 }
-          }
-      }));
+      const payload = {
+        type: 'config', 
+        payload: {
+          clock: { show: document.getElementById('show-clock').checked, pos: 'top-right', scale: 1 },
+          ticker: { show: document.getElementById('show-ticker').checked, showProgressBar: true },
+          alerts: { pos: 'center' },
+          targetTime: targetTimeMs,
+          effects: { sound: document.getElementById('enable-sound').checked, visual: true },
+          bandEffects: { show: document.getElementById('show-band').checked, url: './band-effects.html', pos: 'center', width: 1920, height: 1080 },
+          diceOfDoom: { show: document.getElementById('show-dice').checked, url: './dice.html?transparent=1', pos: 'center', width: 1920, height: 1080 }
+        }
+      };
+      
+      client.publish(topic, JSON.stringify(payload), { retain: true, qos: 1 });
     }
 
+    // Interactive commands are sent with QoS 1 (Guaranteed Delivery) but NOT retained.
     function sendTickerMessage() {
       if(!client.connected) return;
       const text = document.getElementById('ticker-msg').value;
       if (text.trim() === "") return;
-      client.publish(topic, JSON.stringify({ type: 'stage_ticker', payload: { text: text, loops: parseInt(document.getElementById('ticker-loops').value) || 3 } }));
+      client.publish(topic, JSON.stringify({ type: 'stage_ticker', payload: { text: text, loops: parseInt(document.getElementById('ticker-loops').value) || 3 } }), { qos: 1 });
       document.getElementById('ticker-msg').value = "";
     }
 
@@ -210,21 +242,24 @@
       client.publish(topic, JSON.stringify({ 
         type: 'now_playing', 
         payload: { title: document.getElementById('np-title').value || "Track", artist: document.getElementById('np-artist').value || "Artist", pos: 'top-left' } 
-      }));
+      }), { qos: 1 });
     }
 
     function fireConfetti() {
-      if(client.connected) client.publish(topic, JSON.stringify({ type: 'confetti' }));
+      if(client.connected) client.publish(topic, JSON.stringify({ type: 'confetti' }), { qos: 1 });
     }
 
     function sendTestAlert(amount) {
-      if(client.connected) {
-          client.publish(topic, JSON.stringify({ type: 'alert', payload: { id: 'TEST_' + Date.now(), name: "Test Hero", amount: amount, timestamp: Date.now() } }));
-      }
+      if(!client.connected) return;
+      const customName = document.getElementById('test-alert-name').value || "Test Hero";
+      client.publish(topic, JSON.stringify({ 
+          type: 'alert', 
+          payload: { id: 'TEST_' + Date.now(), name: customName, amount: amount, timestamp: Date.now() } 
+      }), { qos: 1 });
     }
 
     function controlDice(command) {
-      if(client.connected) client.publish(topic, JSON.stringify({ type: 'dice_roll', payload: command }));
+      if(client.connected) client.publish(topic, JSON.stringify({ type: 'dice_roll', payload: command }), { qos: 1 });
     }
   </script>
 </body>
