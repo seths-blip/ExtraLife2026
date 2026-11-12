@@ -61,9 +61,10 @@
 </head>
 <body>
   
-  <iframe id="emote-wall" class="widget" allowtransparency="true" style="display:none; z-index: 50;"></iframe>
-  <iframe id="band-effects" class="widget" allowtransparency="true" style="display:none; z-index: 55;"></iframe>
-  <iframe id="dice-of-doom" class="widget" allowtransparency="true" style="display:none; z-index: 60;"></iframe>
+  <!-- BUG SQUASHED: Instantly loads a tiny 1-pixel data URI to permanently kill Evmux's infinite loading spinner -->
+  <iframe id="emote-wall" class="widget" src="data:text/html;charset=utf-8,%3Chtml%3E%3Cbody%3E%3C%2Fbody%3E%3C%2Fhtml%3E" allowtransparency="true" style="display:none; z-index: 50;"></iframe>
+  <iframe id="band-effects" class="widget" src="data:text/html;charset=utf-8,%3Chtml%3E%3Cbody%3E%3C%2Fbody%3E%3C%2Fhtml%3E" allowtransparency="true" style="display:none; z-index: 55;"></iframe>
+  <iframe id="dice-of-doom" class="widget" src="data:text/html;charset=utf-8,%3Chtml%3E%3Cbody%3E%3C%2Fbody%3E%3C%2Fhtml%3E" allowtransparency="true" style="display:none; z-index: 60;"></iframe>
 
   <div id="countdown-widget" class="widget">
     <div class="cd-label">EXTRA LIFE MARATHON</div>
@@ -71,7 +72,8 @@
   </div>
   
   <div id="now-playing-widget">
-    <img id="np-art" class="np-art" src="stream-player/images/image_ef100c.png" alt="Album Art" onerror="this.src='stream-player/images/image_ef100c.png'">
+    <!-- BUG SQUASHED: Nullify onerror so missing images don't create an infinite memory loop -->
+    <img id="np-art" class="np-art" src="stream-player/images/image_ef100c.png" alt="Album Art" onerror="this.onerror=null; this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';">
     <div class="np-info">
       <span class="np-title" id="np-title">Track Name</span>
       <span class="np-artist" id="np-artist">Artist Name</span>
@@ -141,10 +143,11 @@
           el.style.display = data.show ? 'block' : 'none'; 
           applyPosition(el, data.pos, data.width, data.height); 
           
+          const emptySrc = "data:text/html;charset=utf-8,%3Chtml%3E%3Cbody%3E%3C%2Fbody%3E%3C%2Fhtml%3E";
           if (data.url && data.url.trim() !== "") {
               if (el.getAttribute('src') !== data.url) el.setAttribute('src', data.url);
           } else {
-              el.removeAttribute('src');
+              if (el.getAttribute('src') !== emptySrc) el.setAttribute('src', emptySrc);
           }
       };
       
@@ -165,6 +168,8 @@
     }
 
     const topicName = `extralife2026/${teamID}/commands`;
+    
+    // Explicit, unique Client ID guarantees it doesn't conflict with dashboard or Evmux preview windows
     const mqttOptions = {
         clientId: 'overlay_' + Math.random().toString(16).substring(2, 10),
         keepalive: 60,
@@ -172,6 +177,10 @@
         clean: true
     };
     const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt', mqttOptions); 
+    
+    // BUG SQUASHED: Multi-User Deduplication Tracker
+    let processedAlerts = []; 
+    let seenDonationIDs = [], donationQueue = [], isAlerting = false, isFirstLoad = true;
     
     client.on('connect', () => { 
         client.subscribe(topicName); 
@@ -182,7 +191,16 @@
       try {
         const data = JSON.parse(message.toString());
         if (data.type === 'config') applyConfig(data.payload);
-        if (data.type === 'alert') donationQueue.push(data.payload);
+        
+        // BUG SQUASHED: Deduplicates alerts perfectly if 5 dashboards broadcast simultaneously
+        if (data.type === 'alert' && data.payload) {
+          const alertId = data.payload.id || data.payload.timestamp;
+          if (!processedAlerts.includes(alertId)) {
+             processedAlerts.push(alertId);
+             donationQueue.push(data.payload);
+          }
+        }
+
         if (data.type === 'confetti') fireConfetti();
         if (data.type === 'stage_ticker') {
            stagedTicker.pendingText = data.payload.text; 
@@ -194,7 +212,6 @@
            document.getElementById('np-title').innerText = data.payload.title || "Unknown Track";
            document.getElementById('np-artist').innerText = data.payload.artist || "Unknown Artist";
            
-           // Fix: Only prepend stream-player/ if it's not already there and not a full URL
            let displayArt = data.payload.art || "stream-player/images/image_ef100c.png";
            if (!displayArt.startsWith("http") && !displayArt.startsWith("stream-player/")) {
                displayArt = "stream-player/" + displayArt;
@@ -273,8 +290,6 @@
       cdLabel.style.color = isOvertime ? "#FF5555" : "#D4AF37";
     }, 1000);
 
-    let seenDonationIDs = [], donationQueue = [], isAlerting = false, isFirstLoad = true;
-    
     function playMagicCoinSound() { 
       if(!soundsEnabled) return; 
       try { 
@@ -302,6 +317,7 @@
 
         const tData = await tRes.json(); 
         
+        // BUG SQUASHED: STRICT 15-DONATION LIMIT IMPOSED TO PREVENT RATE LIMITING
         const dRes = await fetch(`${apiURL}/donations?limit=15&_t=${cacheBuster}`, { cache: 'no-store' }); 
         if(!dRes.ok) return; 
 
@@ -328,7 +344,14 @@
         for(let i=dons.length-1; i>=0; i--){ 
           if(!seenDonationIDs.includes(dons[i].donationID)){ 
             seenDonationIDs.push(dons[i].donationID); 
-            if(!isFirstLoad) donationQueue.push({name:dons[i].displayName||"Hero", amount:dons[i].amount}); 
+            if(!isFirstLoad) {
+              const newAlert = { id: dons[i].donationID, name: dons[i].displayName || "Hero", amount: dons[i].amount, timestamp: Date.now() };
+              
+              if(client.connected) {
+                // Instantly broadcasts the new alert to ALL overlays globally so they fire at the same time
+                client.publish(topicName, JSON.stringify({ type: 'alert', payload: newAlert }));
+              }
+            } 
           } 
         } 
         isFirstLoad = false; 
@@ -348,6 +371,7 @@
       }, 8000); 
     }
     
+    // BUG SQUASHED: RESTORED 15-SECOND POLLING INTERVAL
     setInterval(fetchExtraLifeData, 15000); 
     fetchExtraLifeData(); 
     setInterval(processQueue, 1000);
