@@ -2,176 +2,136 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Extra Life 2026 - Dashboard</title>
-  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <title>Extra Life 2026 - Stream Control</title>
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
-    body {
-      background-color: #111; color: #FFF; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center;
-    }
-    h1 { color: #D4AF37; font-family: 'VT323', monospace; font-size: 48px; margin-bottom: 5px; text-shadow: 0 0 10px #D4AF37; }
-    #status { font-weight: bold; color: #FF5555; margin-bottom: 25px; text-transform: uppercase; letter-spacing: 1px; }
-    .connected { color: #55FF55 !important; text-shadow: 0 0 10px #55FF55; }
-
-    #dashboard-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-      gap: 20px;
-      width: 100%;
-      max-width: 1400px;
-      align-items: start;
-    }
-
-    .panel { 
-      background: #222; border: 2px solid #D4AF37; border-radius: 10px; padding: 20px; 
-      box-shadow: 0 0 15px rgba(0,0,0,0.8); box-sizing: border-box; width: 100%;
-    }
-    h2 { margin-top: 0; color: #55FF55; border-bottom: 1px solid #444; padding-bottom: 10px; font-size: 20px; text-transform: uppercase; letter-spacing: 2px; }
-    
-    .control-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    label { font-size: 16px; font-weight: bold; }
-    
-    input[type="text"], input[type="number"], input[type="datetime-local"], select {
-      width: calc(100% - 24px); padding: 10px; margin-bottom: 15px; background: #333; color: #FFF; 
-      border: 1px solid #55FF55; border-radius: 5px; font-size: 16px; box-sizing: border-box;
-    }
-    select { width: 100%; cursor: pointer; }
-    
-    .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-    .switch input { opacity: 0; width: 0; height: 0; }
-    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #555; transition: .4s; border-radius: 34px; }
-    .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-    input:checked + .slider { background-color: #55FF55; box-shadow: 0 0 10px #55FF55; }
-    input:checked + .slider:before { transform: translateX(20px); }
-
-    button {
-      background: #333; color: #FFF; border: 2px solid #55FF55; padding: 10px 15px; font-size: 14px; 
-      font-weight: bold; border-radius: 5px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; width: 100%; margin-bottom: 10px;
-    }
-    button:hover { background: #55FF55; color: #000; box-shadow: 0 0 15px #55FF55; }
-    
-    .btn-red { border-color: #FF5555; }
-    .btn-red:hover { background: #FF5555; color: #FFF; box-shadow: 0 0 15px #FF5555; }
-    .btn-gold { border-color: #D4AF37; }
-    .btn-gold:hover { background: #D4AF37; color: #000; box-shadow: 0 0 15px #D4AF37; }
-    .flex-row { display: flex; gap: 10px; }
-    
-    .sync-btn-container { width: 100%; max-width: 1400px; margin-top: 20px; display: flex; justify-content: center; }
+    body { background: #111; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 10px; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }
+    #status { width: 100%; font-size: 18px; font-weight: bold; color: #FF5555; padding: 5px; border-bottom: 2px solid #333; margin-bottom: 5px; }
+    .connected { color: #55FF55 !important; }
+    .panel { background: #222; border: 1px solid #444; border-radius: 6px; padding: 12px; flex: 1 1 300px; box-sizing: border-box; }
+    h2 { font-size: 14px; margin: 0 0 10px 0; color: #55FF55; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 4px; }
+    .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px; font-weight: bold; }
+    input, select, button { background: #333; color: #fff; border: 1px solid #555; padding: 6px; border-radius: 4px; font-size: 13px; box-sizing: border-box; }
+    input[type="text"], input[type="datetime-local"], select { width: 100%; margin-bottom: 8px; }
+    button { cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 6px; transition: 0.2s; text-transform: uppercase; }
+    button:hover { background: #55FF55; color: #000; border-color: #55FF55; }
+    .btn-red { border-color: #FF5555; color: #FF5555; }
+    .btn-red:hover { background: #FF5555; color: #fff; }
+    .btn-gold { border-color: #D4AF37; color: #D4AF37; }
+    .btn-gold:hover { background: #D4AF37; color: #000; }
+    .btn-group { display: flex; gap: 5px; margin-bottom: 6px; }
+    .btn-group button { margin-bottom: 0; }
   </style>
 </head>
 <body>
 
-  <h1>Control Room</h1>
   <div id="status">MQTT Status: Connecting...</div>
 
-  <div id="dashboard-grid">
-    
-    <!-- GLOBAL SETTINGS -->
-    <div class="panel">
-      <h2>Global Settings & Timers</h2>
-      <div class="control-group">
-        <label>Global Sound Effects</label>
-        <label class="switch"><input type="checkbox" id="enable-sound" checked onchange="sendConfig()"><span class="slider"></span></label>
-      </div>
-      <label style="font-size: 14px; color: #AAA;">Marathon End Time (Countdown Target):</label>
-      <input type="datetime-local" id="marathon-end" onchange="updateTimer()">
-    </div>
-
-    <!-- WIDGET TOGGLES & URL INPUTS -->
-    <div class="panel">
-      <h2>Widget Visibility & Sources</h2>
-      <div class="control-group"><label>Top Clock</label><label class="switch"><input type="checkbox" id="show-clock" checked onchange="sendConfig()"><span class="slider"></span></label></div>
-      <div class="control-group"><label>Bottom Ticker</label><label class="switch"><input type="checkbox" id="show-ticker" checked onchange="sendConfig()"><span class="slider"></span></label></div>
-      
-      <hr style="border: 1px solid #444; margin: 15px 0;">
-      
-      <div class="control-group"><label>Band Effects Layer</label><label class="switch"><input type="checkbox" id="show-band" checked onchange="sendConfig()"><span class="slider"></span></label></div>
-      <input type="text" id="band-url" value="./band-effects.html" placeholder="Band Effects URL" onchange="sendConfig()">
-      
-      <div class="control-group"><label>Dice of Doom Layer</label><label class="switch"><input type="checkbox" id="show-dice" checked onchange="sendConfig()"><span class="slider"></span></label></div>
-      <input type="text" id="dice-url" value="./dice.html?transparent=1" placeholder="Dice of Doom URL" onchange="sendConfig()">
-    </div>
-
-    <!-- CUSTOM TICKER -->
-    <div class="panel">
-      <h2>Stage Custom Ticker</h2>
-      <input type="text" id="ticker-msg" placeholder="ENTER MESSAGE (e.g. WE HIT $500!)">
-      <div class="control-group" style="justify-content: flex-start; gap: 15px;">
-        <label style="font-size: 14px; color: #AAA;">Number of Loops:</label>
-        <input type="number" id="ticker-loops" value="3" min="1" max="20" style="width: 80px; margin-bottom: 0;">
-      </div>
-      <button onclick="sendTickerMessage()">Push to Stream</button>
-    </div>
-
-    <!-- NOW PLAYING OVERRIDE -->
-    <div class="panel">
-      <h2>Now Playing Override</h2>
-      <select id="playlist-dropdown" onchange="populateMusicFields()">
-          <option value="">-- Load from playlist.json --</option>
-      </select>
-      <input type="text" id="np-title" placeholder="Track Title">
-      <input type="text" id="np-artist" placeholder="Artist Name">
-      <button class="btn-gold" onclick="sendNowPlaying()">Show Now Playing Graphic</button>
-    </div>
-
-    <!-- DICE OF DOOM -->
-    <div class="panel">
-      <h2>Dice of Doom Controls</h2>
-      <div class="flex-row">
-        <button class="btn-red" onclick="controlDice('ROLL_DICE')">🎲 Roll Dice 🎲</button>
-        <button onclick="controlDice('RESET_DICE')">Reset to Skull</button>
-      </div>
-    </div>
-
-    <!-- MANUAL ALERTS -->
-    <div class="panel">
-      <h2>Manual Triggers & Tests</h2>
-      <button class="btn-red" onclick="fireConfetti()" style="margin-bottom: 20px;">🎉 Fire Confetti Cannon 🎉</button>
-      <label style="font-size: 14px; color: #AAA;">Custom Test Alert Name:</label>
-      <input type="text" id="test-alert-name" placeholder="Donor Name (e.g., PixelPaladin)" value="Test Hero">
-      <p style="color: #AAA; font-size: 14px; margin-top: -5px; margin-bottom: 10px;">Test Visual Alert Tiers:</p>
-      <div class="flex-row">
-        <button onclick="sendTestAlert(5)">Test $5</button>
-        <button onclick="sendTestAlert(25)">Test $25</button>
-        <button class="btn-gold" onclick="sendTestAlert(50)">Test $50</button>
-      </div>
-    </div>
+  <!-- Settings & Visibility -->
+  <div class="panel">
+    <h2>Global Settings & Timers</h2>
+    <div class="row">Global Sound <input type="checkbox" id="enable-sound" checked onchange="sendConfig()"></div>
+    <div class="row">Top Clock <input type="checkbox" id="show-clock" checked onchange="sendConfig()"></div>
+    <div class="row">Bottom Ticker <input type="checkbox" id="show-ticker" checked onchange="sendConfig()"></div>
+    <label style="font-size: 11px; color: #aaa;">Marathon End Time:</label>
+    <input type="datetime-local" id="marathon-end" onchange="updateTimer()">
+    <button class="btn-gold" onclick="sendConfig()">Force Global Resync</button>
   </div>
 
-  <div class="sync-btn-container">
-    <button class="btn-gold" style="width: 100%; max-width: 400px;" onclick="sendConfig()">Force Global Resync</button>
+  <!-- Layers & Inputs -->
+  <div class="panel">
+    <h2>Widget Overlays</h2>
+    <div class="row">Band Effects Layer <input type="checkbox" id="show-band" checked onchange="sendConfig()"></div>
+    <input type="text" id="band-url" value="./band-effects.html" placeholder="Band Effects URL" onchange="sendConfig()">
+    <div class="row">Dice of Doom Layer <input type="checkbox" id="show-dice" checked onchange="sendConfig()"></div>
+    <input type="text" id="dice-url" value="./dice.html?transparent=1" placeholder="Dice of Doom URL" onchange="sendConfig()">
+  </div>
+
+  <!-- Music & Ticker -->
+  <div class="panel">
+    <h2>Music & Custom Ticker</h2>
+    <select id="playlist-dropdown" onchange="populateMusicFields()">
+        <option value="">-- Load from playlist.json --</option>
+    </select>
+    <input type="text" id="np-title" placeholder="Track Title">
+    <input type="text" id="np-artist" placeholder="Artist Name">
+    <button class="btn-gold" onclick="sendNowPlaying()">Push Now Playing Graphic</button>
+    <hr style="border: 1px solid #333; margin: 10px 0;">
+    <input type="text" id="ticker-msg" placeholder="Custom Ticker Message">
+    <div class="row" style="justify-content: flex-start; gap: 10px;">
+      <label>Loops:</label><input type="number" id="ticker-loops" value="3" min="1" max="20" style="width: 60px; margin-bottom: 0;">
+    </div>
+    <button onclick="sendTickerMessage()">Push Message to Ticker</button>
+  </div>
+
+  <!-- Interactive Controls -->
+  <div class="panel">
+    <h2>Live Triggers & Testing</h2>
+    <div class="btn-group">
+      <button class="btn-red" onclick="controlDice('ROLL_DICE')">🎲 Roll Dice</button>
+      <button onclick="controlDice('RESET_DICE')">Reset Dice</button>
+    </div>
+    <button class="btn-red" onclick="fireConfetti()">🎉 Fire Confetti Cannon 🎉</button>
+    <hr style="border: 1px solid #333; margin: 10px 0;">
+    <input type="text" id="test-alert-name" placeholder="Custom Test Donor Name" value="Test Hero">
+    <div class="btn-group">
+      <button onclick="sendTestAlert(5)">Test $5</button>
+      <button onclick="sendTestAlert(25)">Test $25</button>
+      <button class="btn-gold" onclick="sendTestAlert(50)">Test $50</button>
+    </div>
   </div>
 
   <script>
     const teamID = "74089";
     const topic = `extralife2026/${teamID}/commands`;
-    let loadedPlaylist = [];
     
-    // Hardened MQTT options prevent drops while allowing manual override
-    const mqttOptions = {
-        clientId: 'dash_' + Math.random().toString(16).substring(2, 10),
-        keepalive: 60,
-        reconnectPeriod: 1000,
-        clean: true
-    };
+    // Fallback JSON in case browser blocks local file fetching
+    const fallbackPlaylist = [
+      { "title": "A Sorcerers Last Hope", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },  
+      { "title": "Amethyst Rain", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Calming Moon", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Crystal Tombs", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Dark Energy", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Destiny", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Dimensions", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" }, 
+      { "title": "Dungeon Keeper", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" }, 
+      { "title": "Electro Playhouse", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Elixir", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Galactic Exploration", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Genesis", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Infinite Flow", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Jukebox Theory", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Lunar Rover", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Maze", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Meteor Shower Parade", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Midnight Sun", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Moon Base", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Moon Gaze", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Nightfall", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Pursuit", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Pyramid", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Reboot", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Rings of Saturn", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Sapphire Lotus", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Shrine", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Sugar Journey", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Surfing Serenity", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
+      { "title": "Time Warp", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" }
+    ];
+    let loadedPlaylist = [];
+
+    const mqttOptions = { clientId: 'dash_' + Math.random().toString(16).substring(2, 10), keepalive: 60, reconnectPeriod: 1000, clean: true };
     const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt', mqttOptions);
     
+    window.addEventListener('DOMContentLoaded', () => {
+      initTimer();
+      loadPlaylist();
+    });
+
     client.on('connect', () => {
       document.getElementById('status').innerText = "MQTT Status: Connected & Live";
       document.getElementById('status').classList.add('connected');
       client.subscribe(topic);
-      
-      const savedTime = localStorage.getItem('extralife_marathon_end');
-      if (savedTime) {
-          document.getElementById('marathon-end').value = savedTime;
-      } else {
-          const now = new Date(); now.setHours(now.getHours() + 24);
-          const localISOString = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
-          document.getElementById('marathon-end').value = localISOString;
-      }
-      
-      loadPlaylist();
       sendConfig();
     });
 
@@ -179,34 +139,44 @@
       try { if(JSON.parse(msg.toString()).type === 'request_sync') sendConfig(); } catch(e){}
     });
 
+    function initTimer() {
+      const savedTime = localStorage.getItem('extralife_marathon_end');
+      if (savedTime) { document.getElementById('marathon-end').value = savedTime; } 
+      else {
+        const now = new Date(); now.setHours(now.getHours() + 24);
+        document.getElementById('marathon-end').value = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+      }
+    }
+
     function updateTimer() {
-        localStorage.setItem('extralife_marathon_end', document.getElementById('marathon-end').value);
-        sendConfig();
+      localStorage.setItem('extralife_marathon_end', document.getElementById('marathon-end').value);
+      sendConfig();
     }
 
     async function loadPlaylist() {
-        try {
-            const res = await fetch('./playlist.json');
-            if (!res.ok) throw new Error("File not found");
-            loadedPlaylist = await res.json();
-            const dropdown = document.getElementById('playlist-dropdown');
-            loadedPlaylist.forEach((track, index) => {
-                const opt = document.createElement('option');
-                opt.value = index;
-                opt.innerText = `${track.title} - ${track.artist}`;
-                dropdown.appendChild(opt);
-            });
-        } catch(err) {
-            console.warn("Playlist JSON blocked locally. Manual inputs remain active.");
-        }
+      try {
+        const res = await fetch('./playlist.json');
+        if (!res.ok) throw new Error("File not found");
+        loadedPlaylist = await res.json();
+      } catch(err) {
+        console.warn("Local fetch blocked, using embedded fallback playlist.");
+        loadedPlaylist = fallbackPlaylist;
+      }
+      
+      const dropdown = document.getElementById('playlist-dropdown');
+      loadedPlaylist.forEach((track, index) => {
+        const opt = document.createElement('option');
+        opt.value = index; opt.innerText = `${track.title} - ${track.artist}`;
+        dropdown.appendChild(opt);
+      });
     }
 
     function populateMusicFields() {
-        const idx = document.getElementById('playlist-dropdown').value;
-        if(idx !== "" && loadedPlaylist[idx]) {
-            document.getElementById('np-title').value = loadedPlaylist[idx].title;
-            document.getElementById('np-artist').value = loadedPlaylist[idx].artist;
-        }
+      const idx = document.getElementById('playlist-dropdown').value;
+      if(idx !== "" && loadedPlaylist[idx]) {
+        document.getElementById('np-title').value = loadedPlaylist[idx].title;
+        document.getElementById('np-artist').value = loadedPlaylist[idx].artist;
+      }
     }
 
     function sendConfig() {
@@ -214,9 +184,6 @@
       const endTimeValue = document.getElementById('marathon-end').value;
       const targetTimeMs = endTimeValue ? new Date(endTimeValue).getTime() : (new Date().getTime() + 86400000);
       
-      const bandUrl = document.getElementById('band-url').value;
-      const diceUrl = document.getElementById('dice-url').value;
-
       const payload = {
         type: 'config', 
         payload: {
@@ -225,13 +192,11 @@
           alerts: { pos: 'center' },
           targetTime: targetTimeMs,
           effects: { sound: document.getElementById('enable-sound').checked, visual: true },
-          bandEffects: { show: document.getElementById('show-band').checked, url: bandUrl, pos: 'center', width: 1920, height: 1080 },
-          diceOfDoom: { show: document.getElementById('show-dice').checked, url: diceUrl, pos: 'center', width: 1920, height: 1080 }
+          bandEffects: { show: document.getElementById('show-band').checked, url: document.getElementById('band-url').value, pos: 'center', width: 1920, height: 1080 },
+          diceOfDoom: { show: document.getElementById('show-dice').checked, url: document.getElementById('dice-url').value, pos: 'center', width: 1920, height: 1080 }
         }
       };
-      
-      // Retained ensures Evmux gets the correct timer target even if it crashes and reloads
-      client.publish(topic, JSON.stringify(payload), { retain: true, qos: 1 });
+      client.publish(topic, JSON.stringify(payload));
     }
 
     function sendTickerMessage() {
@@ -250,22 +215,15 @@
       }));
     }
 
-    function fireConfetti() {
-      if(client.connected) client.publish(topic, JSON.stringify({ type: 'confetti' }));
-    }
+    function fireConfetti() { if(client.connected) client.publish(topic, JSON.stringify({ type: 'confetti' })); }
 
     function sendTestAlert(amount) {
       if(!client.connected) return;
       const customName = document.getElementById('test-alert-name').value || "Test Hero";
-      client.publish(topic, JSON.stringify({ 
-          type: 'alert', 
-          payload: { id: 'TEST_' + Date.now(), name: customName, amount: amount, timestamp: Date.now() } 
-      }));
+      client.publish(topic, JSON.stringify({ type: 'alert', payload: { id: 'TEST_' + Date.now(), name: customName, amount: amount, timestamp: Date.now() } }));
     }
 
-    function controlDice(command) {
-      if(client.connected) client.publish(topic, JSON.stringify({ type: 'dice_roll', payload: command }));
-    }
+    function controlDice(command) { if(client.connected) client.publish(topic, JSON.stringify({ type: 'dice_roll', payload: command })); }
   </script>
 </body>
 </html>
