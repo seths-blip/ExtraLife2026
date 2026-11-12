@@ -36,7 +36,7 @@
     #progress-bar-bg { position: absolute; bottom: 54px; left: 0; width: 100%; height: 6px; background: rgba(0,0,0,0.5); z-index: 1001; display: none; }
     #progress-bar-fill { width: 0%; height: 100%; background: #55FF55; box-shadow: 0 0 10px #55FF55; transition: width 2s ease-in-out; }
 
-    /* EPIC RPG ALERT STYLING RESTORED */
+    /* RESTORED EPIC RPG ALERT STYLING */
     #alert-wrapper { position: absolute; z-index: 9999; display: flex; justify-content: center; width: 100%; top: 15%; pointer-events: none; }
     #alert-box { 
         display: none; 
@@ -221,7 +221,6 @@
             stagedTicker.loops--; 
             if (stagedTicker.loops < 0) { stagedTicker.active = false; stagedTicker.text = ""; }
         }
-        // ONLY triggers visual update, does NOT hit the network here
     });
 
     let globalAudioCtx = null;
@@ -271,12 +270,24 @@
 
     let seenDonationIDs = [], donationQueue = [], isAlerting = false, isFirstLoad = true;
     
+    function playMagicCoinSound() { 
+      if(!soundsEnabled) return; 
+      try { 
+          const ctx=new(window.AudioContext||window.webkitAudioContext)(),osc=ctx.createOscillator(),g=ctx.createGain();
+          osc.type='square';osc.connect(g);g.connect(ctx.destination);
+          osc.frequency.setValueAtTime(987.77,ctx.currentTime);
+          osc.frequency.setValueAtTime(1318.51,ctx.currentTime+0.1);
+          g.gain.setValueAtTime(0.1,ctx.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.00001,ctx.currentTime+0.4);
+          osc.start(ctx.currentTime);osc.stop(ctx.currentTime+0.5); 
+      } catch(e){} 
+    }
+    
     async function fetchExtraLifeData() { 
       try { 
         const cacheBuster = Date.now();
         let apiURL = `https://extralife.donordrive.com/api/teams/${teamID}`;
         
-        // Polling Team/Participant Data
         let tRes = await fetch(`${apiURL}?_t=${cacheBuster}`, { cache: 'no-store' });
         if(!tRes.ok) {
           apiURL = `https://extralife.donordrive.com/api/participants/${teamID}`;
@@ -286,7 +297,7 @@
 
         const tData = await tRes.json(); 
         
-        // STRICT OPTIMIZED LIMIT: ONLY POLL 15 DONATIONS TO PREVENT RATE LIMITING
+        // STRICT 15-DONATION LIMIT IMPOSED TO PREVENT RATE LIMITING
         const dRes = await fetch(`${apiURL}/donations?limit=15&_t=${cacheBuster}`, { cache: 'no-store' }); 
         if(!dRes.ok) return; 
 
@@ -298,29 +309,22 @@
         document.getElementById('progress-bar-fill').style.width = Math.min((raised / goal) * 100, 100) + '%'; 
         
         let str = ""; 
-        if (stagedTicker.active && stagedTicker.text && stagedTicker.text.trim() !== "") { 
-          str += `📢 <span class="green-text">${stagedTicker.text.toUpperCase()}</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `; 
+        if (stagedTicker.active && stagedTicker.text.trim() !== "") { 
+            str += `📢 <span class="green-text">${stagedTicker.text.toUpperCase()}</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `; 
         } else if (customTickerText.trim() !== "") { 
-          str += `📢 <span class="green-text">${customTickerText.toUpperCase()}</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `; 
+            str += `📢 <span class="green-text">${customTickerText.toUpperCase()}</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `; 
         }
+
+        str += `👑 <span class="gold-text">${(tData.name||"Our Guild").toUpperCase()} PROGRESS:</span> $${raised} / $${goal} 👑 &nbsp;&nbsp;&nbsp;&nbsp; 📜 <span class="gold-text">LATEST BENEFACTORS:</span> `; 
+        dons.slice(0,5).forEach(d => str += `${d.displayName||"Hero"} ($${d.amount}) • `); 
         
-        let guildName = tData.name || tData.displayName || "Our Guild";
-        str += `👑 <span class="gold-text">${guildName.toUpperCase()} PROGRESS:</span> $${raised} / $${goal} 👑 &nbsp;&nbsp;&nbsp;&nbsp; 📜 <span class="gold-text">BENEFACTORS:</span> `; 
-        
-        if (dons.length > 0) {
-          dons.slice(0,5).forEach(d => str += `${d.displayName||"Hero"} ($${d.amount}) • `); 
-        } else {
-          str += `Awaiting our first hero! • `;
-        }
-        
-        document.getElementById('ticker-text-1').innerHTML = str; document.getElementById('ticker-text-2').innerHTML = str; 
+        document.getElementById('ticker-text-1').innerHTML = str; 
+        document.getElementById('ticker-text-2').innerHTML = str; 
         
         for(let i=dons.length-1; i>=0; i--){ 
           if(!seenDonationIDs.includes(dons[i].donationID)){ 
             seenDonationIDs.push(dons[i].donationID); 
-            if(!isFirstLoad) {
-              donationQueue.push({ id: dons[i].donationID, name: dons[i].displayName || "Hero", amount: dons[i].amount, timestamp: Date.now() });
-            } 
+            if(!isFirstLoad) donationQueue.push({name:dons[i].displayName||"Hero", amount:dons[i].amount}); 
           } 
         } 
         isFirstLoad = false; 
@@ -330,21 +334,17 @@
     function processQueue() { 
       if(isAlerting || donationQueue.length === 0) return; 
       isAlerting = true; 
-      try {
-        let cur = donationQueue.shift(); 
-        document.getElementById('alert-text').innerHTML = `<span style="color:#FFF;">${cur.name}</span> gifted <span class="green-text">$${cur.amount}</span>!`; 
-        document.getElementById('alert-box').style.display = 'block'; 
-        playCriticalHitSound();
-        setTimeout(() => {
+      let cur = donationQueue.shift(); 
+      document.getElementById('alert-text').innerHTML = `<span style="color:#FFF;">${cur.name}</span> gifted <span class="green-text">$${cur.amount}</span>!`; 
+      playMagicCoinSound(); 
+      document.getElementById('alert-box').style.display = 'block'; 
+      setTimeout(() => {
           document.getElementById('alert-box').style.display = 'none'; 
           setTimeout(() => isAlerting = false, 2000);
-        }, 8000); 
-      } catch(e) {
-        isAlerting = false; 
-      }
+      }, 8000); 
     }
     
-    // RESTORED OPTIMIZED NETWORK POLLING: EXACTLY 15 SECONDS
+    // RESTORED 15-SECOND POLLING INTERVAL
     setInterval(fetchExtraLifeData, 15000); 
     fetchExtraLifeData(); 
     setInterval(processQueue, 1000);
