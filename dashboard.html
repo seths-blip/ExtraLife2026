@@ -45,7 +45,6 @@
 
   <div class="dashboard-grid">
     
-    <!-- CLOCK & TICKER -->
     <div class="panel">
       <h2>⏱️ Time & Ticker</h2>
       <div class="control-group">
@@ -90,13 +89,10 @@
       </div>
     </div>
 
-    <!-- 1-CLICK MUSIC PLAYER -->
     <div class="panel">
       <h2>🎵 Now Playing Dropdown</h2>
       <p style="font-size: 13px; color: #aaa; margin: -5px 0 10px 0;">Click a track below to instantly slide it onto the stream.</p>
-      
       <div id="playlist-container"></div>
-      
       <div class="control-group">
         <label>Slide-in Anchor</label>
         <div class="input-box">
@@ -108,7 +104,6 @@
           </select>
         </div>
       </div>
-
       <hr>
       <h3 style="margin:0 0 10px 0; font-size:14px; color:#ccc;">Manual Custom Track Override</h3>
       <div class="control-group">
@@ -127,12 +122,12 @@
       <button class="btn-special" onclick="triggerCustomNowPlaying()" style="margin-top: 10px;">▶ PUSH MANUAL TRACK</button>
     </div>
 
-    <!-- WIDGETS -->
     <div class="panel">
       <h2>🔗 Fullscreen Web Widgets</h2>
       <div class="control-group">
         <label>😎 Emote Wall</label>
         <div class="input-box">
+          <!-- FIX: Unchecked by default to prevent auto-loading blank iframes -->
           <input type="checkbox" id="emote-show" onchange="updateConfig()">
           <input type="text" id="emote-url" placeholder="Widget URL..." onchange="updateConfig()">
         </div>
@@ -140,6 +135,7 @@
       <div class="control-group">
         <label>🎸 Band Effects</label>
         <div class="input-box">
+          <!-- FIX: Unchecked by default -->
           <input type="checkbox" id="band-show" onchange="updateConfig()">
           <input type="text" id="band-url" value="./band-effects.html" placeholder="Widget URL..." onchange="updateConfig()">
         </div>
@@ -148,6 +144,7 @@
       <div class="control-group">
         <label>🎲 Dice of Doom</label>
         <div class="input-box">
+          <!-- FIX: Unchecked by default -->
           <input type="checkbox" id="dice-show" onchange="updateConfig()">
           <input type="text" id="dice-url" value="./dice.html?transparent=1" placeholder="Widget URL..." onchange="updateConfig()">
         </div>
@@ -156,7 +153,6 @@
       <button onclick="sendPayload('dice_reset', null)" style="margin-top: 10px;">Reset Dice to Skull</button>
     </div>
 
-    <!-- ALERTS & EFFECTS -->
     <div class="panel">
       <h2>⚔️ Alerts & Effects</h2>
       <div class="control-group">
@@ -199,7 +195,6 @@
       </div>
       <button class="btn-special" style="margin-top:auto;" onclick="sendPayload('confetti', null)">🎉 FIRE CONFETTI CANNON</button>
     </div>
-
   </div>
 
   <script>
@@ -303,7 +298,6 @@
 
             const div = document.createElement('div');
             div.className = 'playlist-card';
-            // BUG SQUASHED: Nullify onerror so missing images don't infinite loop
             div.innerHTML = `
               <img src="${displayArt}" class="playlist-art" alt="art" onerror="this.onerror=null; this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';">
               <span class="playlist-title">${title}</span>
