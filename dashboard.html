@@ -1,91 +1,213 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Extra Life 2026 - Stream Control</title>
+  <meta charset="utf-8">
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
-    body { background: #111; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 10px; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }
-    #status { width: 100%; font-size: 18px; font-weight: bold; color: #FF5555; padding: 5px; border-bottom: 2px solid #333; margin-bottom: 5px; }
-    .connected { color: #55FF55 !important; }
-    .panel { background: #222; border: 1px solid #444; border-radius: 6px; padding: 12px; flex: 1 1 300px; box-sizing: border-box; }
-    h2 { font-size: 14px; margin: 0 0 10px 0; color: #55FF55; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 4px; }
-    .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px; font-weight: bold; }
-    input, select, button { background: #333; color: #fff; border: 1px solid #555; padding: 6px; border-radius: 4px; font-size: 13px; box-sizing: border-box; }
-    input[type="text"], input[type="datetime-local"], select { width: 100%; margin-bottom: 8px; }
-    button { cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 6px; transition: 0.2s; text-transform: uppercase; }
-    button:hover { background: #55FF55; color: #000; border-color: #55FF55; }
-    .btn-red { border-color: #FF5555; color: #FF5555; }
-    .btn-red:hover { background: #FF5555; color: #fff; }
-    .btn-gold { border-color: #D4AF37; color: #D4AF37; }
-    .btn-gold:hover { background: #D4AF37; color: #000; }
-    .btn-group { display: flex; gap: 5px; margin-bottom: 6px; }
-    .btn-group button { margin-bottom: 0; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a1a; color: #FFF; padding: 20px; margin: 0; }
+    .header { display: flex; justify-content: space-between; align-items: center; max-width: 1400px; margin: 0 auto 20px auto; border-bottom: 2px solid #333; padding-bottom: 15px; }
+    .header h1 { margin: 0; color: #D4AF37; font-size: 28px; }
+    #status-badge { font-size: 14px; padding: 8px 15px; border-radius: 20px; background: #FF5555; color: white; font-weight: bold; }
+    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; max-width: 1400px; margin: 0 auto; }
+    .panel { background: #2a2a2a; padding: 20px; border-radius: 12px; border-top: 4px solid #D4AF37; box-shadow: 0 4px 15px rgba(0,0,0,0.3); display: flex; flex-direction: column; }
+    .panel h2 { margin-top: 0; color: #FFF; font-size: 18px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 15px; }
+    .control-group { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 10px; }
+    .control-group label { flex: 1; min-width: 120px; font-size: 14px; color: #ccc; font-weight: 500; }
+    .input-box { flex: 2; display: flex; gap: 8px; align-items: center; }
+    input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: #D4AF37; }
+    input[type="text"], input[type="number"], input[type="datetime-local"], select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #444; background: #1e1e1e; color: white; font-size: 14px; box-sizing: border-box; }
+    input:focus, select:focus { outline: none; border-color: #D4AF37; }
+    button { background: #D4AF37; color: #000; font-weight: bold; border: none; padding: 12px; font-size: 14px; cursor: pointer; border-radius: 6px; width: 100%; transition: transform 0.1s, background 0.2s; margin-top: auto; }
+    button:hover { background: #b8962c; }
+    button:active { transform: scale(0.98); }
+    .btn-special { background: #55FF55; margin-top: 15px; } .btn-special:hover { background: #32CD32; }
+    .btn-dice { background: #FF5555; color: #FFF; margin-top: 15px; } .btn-dice:hover { background: #CC0000; }
+    
+    #playlist-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; max-height: 250px; overflow-y: auto; background: #1e1e1e; border-radius: 8px; padding: 10px; margin-bottom: 15px; border: 1px solid #444; }
+    #playlist-container::-webkit-scrollbar { width: 8px; }
+    #playlist-container::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+    .playlist-card { background: #333; border-radius: 6px; padding: 8px; text-align: center; cursor: pointer; transition: all 0.2s; border: 2px solid transparent; }
+    .playlist-card:hover { background: #444; border-color: #55FF55; transform: translateY(-2px); }
+    .playlist-card:active { transform: scale(0.95); border-color: #D4AF37; }
+    .playlist-art { width: 100%; aspect-ratio: 1; border-radius: 4px; object-fit: cover; background: #000; margin-bottom: 5px; }
+    .playlist-title { font-weight: bold; color: #55FF55; font-size: 12px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .playlist-artist { font-size: 11px; color: #aaa; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    
+    hr { border-color: #444; width: 100%; margin: 15px 0; border-style: solid; border-bottom: none; }
   </style>
 </head>
 <body>
 
-  <div id="status">MQTT Status: Connecting...</div>
-
-  <!-- Settings & Visibility -->
-  <div class="panel">
-    <h2>Global Settings & Timers</h2>
-    <div class="row">Global Sound <input type="checkbox" id="enable-sound" checked onchange="sendConfig()"></div>
-    <div class="row">Top Clock <input type="checkbox" id="show-clock" checked onchange="sendConfig()"></div>
-    <div class="row">Bottom Ticker <input type="checkbox" id="show-ticker" checked onchange="sendConfig()"></div>
-    <label style="font-size: 11px; color: #aaa;">Marathon End Time:</label>
-    <input type="datetime-local" id="marathon-end" onchange="updateTimer()">
-    <button class="btn-gold" onclick="sendConfig()">Force Global Resync</button>
+  <div class="header">
+    <h1>🎮 Extra Life 24H Dashboard</h1>
+    <span id="status-badge">🔴 DISCONNECTED</span>
   </div>
 
-  <!-- Layers & Inputs -->
-  <div class="panel">
-    <h2>Widget Overlays</h2>
-    <div class="row">Band Effects Layer <input type="checkbox" id="show-band" checked onchange="sendConfig()"></div>
-    <input type="text" id="band-url" value="./band-effects.html" placeholder="Band Effects URL" onchange="sendConfig()">
-    <div class="row">Dice of Doom Layer <input type="checkbox" id="show-dice" checked onchange="sendConfig()"></div>
-    <input type="text" id="dice-url" value="./dice.html?transparent=1" placeholder="Dice of Doom URL" onchange="sendConfig()">
-  </div>
+  <div class="dashboard-grid">
+    
+    <!-- CLOCK & TICKER -->
+    <div class="panel">
+      <h2>⏱️ Time & Ticker</h2>
+      <div class="control-group">
+        <label>Countdown Clock</label>
+        <div class="input-box">
+          <input type="checkbox" id="clock-show" checked onchange="updateConfig()"> Show
+          <select id="clock-pos" onchange="updateConfig()">
+            <option value="top-right">Top Right</option>
+            <option value="top-left">Top Left</option>
+            <option value="bottom-left">Bottom Left</option>
+            <option value="bottom-right">Bottom Right</option>
+          </select>
+        </div>
+      </div>
+      <div class="control-group">
+        <label>Clock Scale & Date</label>
+        <div class="input-box">
+          <input type="number" step="0.1" id="clock-scale" value="1.0" title="Scale" onchange="updateConfig()">
+          <input type="datetime-local" id="target-time" onchange="updateConfig()">
+        </div>
+      </div>
+      <hr>
+      <div class="control-group">
+        <label>Bottom Ticker</label>
+        <div class="input-box">
+          <input type="checkbox" id="ticker-show" checked onchange="updateConfig()"> Show
+          <input type="checkbox" id="ticker-bar" checked onchange="updateConfig()"> Progress Bar
+        </div>
+      </div>
+      <div class="control-group">
+        <label>Custom Message</label>
+        <div class="input-box">
+          <input type="text" id="ticker-custom" placeholder="e.g. INCENTIVE: BEAN BOOZLED!" onchange="updateConfig()">
+        </div>
+      </div>
+      <div class="control-group">
+        <label>Loops to Display</label>
+        <div class="input-box">
+          <input type="number" id="ticker-loops" value="3">
+          <button onclick="stageCustomText()" style="margin:0;">Stage Msg</button>
+        </div>
+      </div>
+    </div>
 
-  <!-- Music & Ticker -->
-  <div class="panel">
-    <h2>Music & Custom Ticker</h2>
-    <select id="playlist-dropdown" onchange="populateMusicFields()">
-        <option value="">-- Load from playlist.json --</option>
-    </select>
-    <input type="text" id="np-title" placeholder="Track Title">
-    <input type="text" id="np-artist" placeholder="Artist Name">
-    <button class="btn-gold" onclick="sendNowPlaying()">Push Now Playing Graphic</button>
-    <hr style="border: 1px solid #333; margin: 10px 0;">
-    <input type="text" id="ticker-msg" placeholder="Custom Ticker Message">
-    <div class="row" style="justify-content: flex-start; gap: 10px;">
-      <label>Loops:</label><input type="number" id="ticker-loops" value="3" min="1" max="20" style="width: 60px; margin-bottom: 0;">
-    </div>
-    <button onclick="sendTickerMessage()">Push Message to Ticker</button>
-  </div>
+    <!-- 1-CLICK MUSIC PLAYER -->
+    <div class="panel">
+      <h2>🎵 Now Playing Dropdown</h2>
+      <p style="font-size: 13px; color: #aaa; margin: -5px 0 10px 0;">Click a track below to instantly slide it onto the stream.</p>
+      
+      <div id="playlist-container"></div>
+      
+      <div class="control-group">
+        <label>Slide-in Anchor</label>
+        <div class="input-box">
+          <select id="np-pos" onchange="updateConfig()">
+            <option value="top-left">Top Left</option>
+            <option value="top-right">Top Right</option>
+            <option value="bottom-left">Bottom Left</option>
+            <option value="bottom-right">Bottom Right</option>
+          </select>
+        </div>
+      </div>
 
-  <!-- Interactive Controls -->
-  <div class="panel">
-    <h2>Live Triggers & Testing</h2>
-    <div class="btn-group">
-      <button class="btn-red" onclick="controlDice('ROLL_DICE')">🎲 Roll Dice</button>
-      <button onclick="controlDice('RESET_DICE')">Reset Dice</button>
+      <hr>
+      <h3 style="margin:0 0 10px 0; font-size:14px; color:#ccc;">Manual Custom Track Override</h3>
+      <div class="control-group">
+        <label>Track & Artist</label>
+        <div class="input-box">
+          <input type="text" id="np-title" placeholder="Title">
+          <input type="text" id="np-artist" placeholder="Artist">
+        </div>
+      </div>
+      <div class="control-group">
+        <label>Art URL</label>
+        <div class="input-box">
+          <input type="text" id="np-art" placeholder="https://...">
+        </div>
+      </div>
+      <button class="btn-special" onclick="triggerCustomNowPlaying()" style="margin-top: 10px;">▶ PUSH MANUAL TRACK</button>
     </div>
-    <button class="btn-red" onclick="fireConfetti()">🎉 Fire Confetti Cannon 🎉</button>
-    <hr style="border: 1px solid #333; margin: 10px 0;">
-    <input type="text" id="test-alert-name" placeholder="Custom Test Donor Name" value="Test Hero">
-    <div class="btn-group">
-      <button onclick="sendTestAlert(5)">Test $5</button>
-      <button onclick="sendTestAlert(25)">Test $25</button>
-      <button class="btn-gold" onclick="sendTestAlert(50)">Test $50</button>
+
+    <!-- WIDGETS -->
+    <div class="panel">
+      <h2>🔗 Fullscreen Web Widgets</h2>
+      <div class="control-group">
+        <label>😎 Emote Wall</label>
+        <div class="input-box">
+          <input type="checkbox" id="emote-show" onchange="updateConfig()">
+          <input type="text" id="emote-url" placeholder="Widget URL..." onchange="updateConfig()">
+        </div>
+      </div>
+      <div class="control-group">
+        <label>🎸 Band Effects</label>
+        <div class="input-box">
+          <input type="checkbox" id="band-show" onchange="updateConfig()">
+          <input type="text" id="band-url" value="./band-effects.html" placeholder="Widget URL..." onchange="updateConfig()">
+        </div>
+      </div>
+      <hr>
+      <div class="control-group">
+        <label>🎲 Dice of Doom</label>
+        <div class="input-box">
+          <input type="checkbox" id="dice-show" onchange="updateConfig()">
+          <input type="text" id="dice-url" value="./dice.html?transparent=1" placeholder="Widget URL..." onchange="updateConfig()">
+        </div>
+      </div>
+      <button class="btn-dice" onclick="sendPayload('dice_roll', null)">🎲 ROLL THE DICE OF DOOM 🎲</button>
+      <button onclick="sendPayload('dice_reset', null)" style="margin-top: 10px;">Reset Dice to Skull</button>
     </div>
+
+    <!-- ALERTS & EFFECTS -->
+    <div class="panel">
+      <h2>⚔️ Alerts & Effects</h2>
+      <div class="control-group">
+        <label>Alert Position</label>
+        <div class="input-box">
+          <select id="alert-pos" onchange="updateConfig()">
+            <option value="center">Dead Center</option>
+            <option value="top-center">Top Center</option>
+            <option value="bottom-center">Bottom Center (Above Ticker)</option>
+            <option value="top-left">Top Left</option>
+            <option value="top-right">Top Right</option>
+          </select>
+        </div>
+      </div>
+      <div class="control-group">
+        <label>Manual Alert</label>
+        <div class="input-box">
+          <input type="text" id="alert-name" placeholder="Donor Name">
+          <input type="number" id="alert-amount" placeholder="Amount">
+        </div>
+      </div>
+      <button onclick="sendManualAlert()">Push Alert to Stream</button>
+      <hr>
+      <div class="control-group">
+        <label>Enable Sounds</label>
+        <div class="input-box">
+          <input type="checkbox" id="effect-sound" checked onchange="updateConfig()">
+        </div>
+      </div>
+      <div class="control-group">
+        <label>Enable Sparks</label>
+        <div class="input-box">
+          <input type="checkbox" id="effect-visual" checked onchange="updateConfig()">
+        </div>
+      </div>
+      <button class="btn-special" style="margin-top:auto;" onclick="sendPayload('confetti', null)">🎉 FIRE CONFETTI CANNON</button>
+    </div>
+
   </div>
 
   <script>
-    const teamID = "74089";
-    const topic = `extralife2026/${teamID}/commands`;
+    const teamID = "74089"; 
+    const topicName = `extralife2026/${teamID}/commands`;
     
-    // Fallback JSON in case browser blocks local file fetching
+    // Explicit, unique Client ID to prevent dropped connections
+    const myClientID = 'dash_' + Math.random().toString(36).substring(2, 10);
+    const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt', { clientId: myClientID, clean: true });
+    
+    let isNetworkSyncing = false;
+
+    // Guaranteed fallback playlist so you are never locked out by CORS
     const fallbackPlaylist = [
       { "title": "A Sorcerers Last Hope", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },  
       { "title": "Amethyst Rain", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
@@ -118,112 +240,199 @@
       { "title": "Surfing Serenity", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
       { "title": "Time Warp", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" }
     ];
-    let loadedPlaylist = [];
-
-    const mqttOptions = { clientId: 'dash_' + Math.random().toString(16).substring(2, 10), keepalive: 60, reconnectPeriod: 1000, clean: true };
-    const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt', mqttOptions);
-    
-    window.addEventListener('DOMContentLoaded', () => {
-      initTimer();
-      loadPlaylist();
-    });
 
     client.on('connect', () => {
-      document.getElementById('status').innerText = "MQTT Status: Connected & Live";
-      document.getElementById('status').classList.add('connected');
-      client.subscribe(topic);
-      sendConfig();
+      const badge = document.getElementById('status-badge');
+      badge.innerHTML = "🟢 MULTIPLAYER SYNC ACTIVE";
+      badge.style.background = "#55FF55";
+      badge.style.color = "black";
+      updateConfig(true); 
     });
 
-    client.on('message', (t, msg) => {
-      try { if(JSON.parse(msg.toString()).type === 'request_sync') sendConfig(); } catch(e){}
+    client.on('message', (topic, message) => {
+      try { 
+        const data = JSON.parse(message.toString()); 
+        if (data.type === 'request_sync') { setTimeout(() => updateConfig(true), Math.random() * 1000); }
+        if (data.type === 'config' && data.sender !== myClientID) { syncUIFromNetwork(data.payload); }
+      } catch(e) {}
     });
+    
+    client.subscribe(topicName);
 
-    function initTimer() {
-      const savedTime = localStorage.getItem('extralife_marathon_end');
-      if (savedTime) { document.getElementById('marathon-end').value = savedTime; } 
-      else {
-        const now = new Date(); now.setHours(now.getHours() + 24);
-        document.getElementById('marathon-end').value = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
-      }
+    function sendPayload(type, payload) {
+      if (client.connected) client.publish(topicName, JSON.stringify({ type, payload, sender: myClientID }));
     }
 
-    function updateTimer() {
-      localStorage.setItem('extralife_marathon_end', document.getElementById('marathon-end').value);
-      sendConfig();
-    }
-
-    async function loadPlaylist() {
-      try {
-        const res = await fetch('./playlist.json');
-        if (!res.ok) throw new Error("File not found");
-        loadedPlaylist = await res.json();
-      } catch(err) {
-        console.warn("Local fetch blocked, using embedded fallback playlist.");
-        loadedPlaylist = fallbackPlaylist;
-      }
-      
-      const dropdown = document.getElementById('playlist-dropdown');
-      loadedPlaylist.forEach((track, index) => {
-        const opt = document.createElement('option');
-        opt.value = index; opt.innerText = `${track.title} - ${track.artist}`;
-        dropdown.appendChild(opt);
-      });
-    }
-
-    function populateMusicFields() {
-      const idx = document.getElementById('playlist-dropdown').value;
-      if(idx !== "" && loadedPlaylist[idx]) {
-        document.getElementById('np-title').value = loadedPlaylist[idx].title;
-        document.getElementById('np-artist').value = loadedPlaylist[idx].artist;
-      }
-    }
-
-    function sendConfig() {
-      if(!client.connected) return;
-      const endTimeValue = document.getElementById('marathon-end').value;
-      const targetTimeMs = endTimeValue ? new Date(endTimeValue).getTime() : (new Date().getTime() + 86400000);
-      
-      const payload = {
-        type: 'config', 
-        payload: {
-          clock: { show: document.getElementById('show-clock').checked, pos: 'top-right', scale: 1 },
-          ticker: { show: document.getElementById('show-ticker').checked, showProgressBar: true },
-          alerts: { pos: 'center' },
-          targetTime: targetTimeMs,
-          effects: { sound: document.getElementById('enable-sound').checked, visual: true },
-          bandEffects: { show: document.getElementById('show-band').checked, url: document.getElementById('band-url').value, pos: 'center', width: 1920, height: 1080 },
-          diceOfDoom: { show: document.getElementById('show-dice').checked, url: document.getElementById('dice-url').value, pos: 'center', width: 1920, height: 1080 }
+    function initializeDate() {
+        const timeInput = document.getElementById('target-time');
+        if (!timeInput.value) {
+            const d = new Date(Date.now() + 86400000); 
+            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+            timeInput.value = d.toISOString().slice(0, 16);
         }
+    }
+
+    async function fetchPlaylist() {
+        const url = `https://seths-blip.github.io/extralife2026/stream-player/playlist.json?t=${Date.now()}`;
+        const container = document.getElementById('playlist-container');
+        let tracks = [];
+        
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error("JSON not found");
+            const data = await res.json();
+            tracks = Array.isArray(data) ? data : (data.tracks || data.playlist || data.songs || []);
+            if (tracks.length === 0) throw new Error("Empty array");
+        } catch (e) {
+            console.warn("Could not load JSON from GitHub. Activating embedded fallback.");
+            tracks = fallbackPlaylist;
+        }
+
+        container.innerHTML = '';
+        tracks.forEach(track => {
+            const title = track.title || track.name || "Unknown Track";
+            const artist = track.artist || track.author || track.creator || "Unknown Artist";
+            let art = track.art || track.artwork || track.cover || track.image || "https://upload.wikimedia.org/wikipedia/commons/c/ca/CD-ROM.png";
+
+            if (!art.startsWith("http")) {
+                art = art.replace(/^[\.\/]+/, ''); 
+                if (!art.startsWith('images/')) art = 'images/' + art;
+                if (!art.startsWith('stream-player/')) art = 'stream-player/' + art;
+                art = 'https://seths-blip.github.io/extralife2026/' + art;
+            }
+
+            const div = document.createElement('div');
+            div.className = 'playlist-card';
+            div.innerHTML = `
+              <img src="${art}" class="playlist-art" alt="art" onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/c/ca/CD-ROM.png'">
+              <span class="playlist-title">${title}</span>
+              <span class="playlist-artist">${artist}</span>
+            `;
+            
+            div.onclick = () => {
+                sendPayload('now_playing', {
+                    title: title,
+                    artist: artist,
+                    art: art,
+                    pos: document.getElementById('np-pos').value
+                });
+                
+                div.style.borderColor = "#D4AF37";
+                setTimeout(() => div.style.borderColor = "transparent", 800);
+            };
+            container.appendChild(div);
+        });
+    }
+
+    function syncUIFromNetwork(config) {
+      isNetworkSyncing = true;
+      try {
+        if(config.clock) { document.getElementById('clock-show').checked = config.clock.show; document.getElementById('clock-pos').value = config.clock.pos; document.getElementById('clock-scale').value = config.clock.scale; }
+        if(config.emoteWall) { document.getElementById('emote-show').checked = config.emoteWall.show; document.getElementById('emote-url').value = config.emoteWall.url; }
+        if(config.bandEffects) { document.getElementById('band-show').checked = config.bandEffects.show; document.getElementById('band-url').value = config.bandEffects.url; }
+        if(config.diceOfDoom) { document.getElementById('dice-show').checked = config.diceOfDoom.show; document.getElementById('dice-url').value = config.diceOfDoom.url; }
+        if(config.ticker) { document.getElementById('ticker-show').checked = config.ticker.show; document.getElementById('ticker-bar').checked = config.ticker.showProgressBar; document.getElementById('ticker-custom').value = config.ticker.customText; }
+        if(config.alerts) { document.getElementById('alert-pos').value = config.alerts.pos; }
+        if(config.effects) { document.getElementById('effect-sound').checked = config.effects.sound; document.getElementById('effect-visual').checked = config.effects.visual; }
+        if(config.targetTime) {
+          let d = new Date(config.targetTime);
+          d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+          document.getElementById('target-time').value = d.toISOString().slice(0, 16);
+        }
+      } catch(e) {}
+      isNetworkSyncing = false;
+    }
+
+    function loadSavedConfig() {
+      const saved = localStorage.getItem('extralife_dashboard_ui');
+      if (saved) {
+        const ui = JSON.parse(saved);
+        if(ui.clockShow !== undefined) document.getElementById('clock-show').checked = ui.clockShow; 
+        document.getElementById('clock-pos').value = ui.clockPos || 'top-right'; 
+        document.getElementById('clock-scale').value = ui.clockScale || '1.0'; 
+        if(ui.targetTime) document.getElementById('target-time').value = ui.targetTime;
+        
+        if(ui.emoteShow !== undefined) document.getElementById('emote-show').checked = ui.emoteShow; 
+        if(ui.emoteUrl) document.getElementById('emote-url').value = ui.emoteUrl; 
+        
+        if(ui.bandShow !== undefined) document.getElementById('band-show').checked = ui.bandShow; 
+        if(ui.bandUrl) document.getElementById('band-url').value = ui.bandUrl;
+        
+        if(ui.diceShow !== undefined) document.getElementById('dice-show').checked = ui.diceShow; 
+        if(ui.diceUrl) document.getElementById('dice-url').value = ui.diceUrl; 
+        
+        if(ui.tickerShow !== undefined) document.getElementById('ticker-show').checked = ui.tickerShow; 
+        if(ui.tickerBar !== undefined) document.getElementById('ticker-bar').checked = ui.tickerBar; 
+        document.getElementById('ticker-custom').value = ui.tickerCustom || ""; 
+        document.getElementById('ticker-loops').value = ui.tickerLoops || "3";
+        document.getElementById('alert-pos').value = ui.alertPos || "center";
+        document.getElementById('np-pos').value = ui.npPos || "top-left";
+        
+        if(ui.effectSound !== undefined) document.getElementById('effect-sound').checked = ui.effectSound; 
+        if(ui.effectVisual !== undefined) document.getElementById('effect-visual').checked = ui.effectVisual;
+      }
+      initializeDate();
+      fetchPlaylist();
+    }
+
+    function updateConfig(force = false) {
+      if (isNetworkSyncing && !force) return;
+
+      const config = {
+        clock: { show: document.getElementById('clock-show').checked, pos: document.getElementById('clock-pos').value, scale: document.getElementById('clock-scale').value },
+        emoteWall: { show: document.getElementById('emote-show').checked, url: document.getElementById('emote-url').value, pos: 'top-left', width: 1920, height: 1080 },
+        bandEffects: { show: document.getElementById('band-show').checked, url: document.getElementById('band-url').value, pos: 'top-left', width: 1920, height: 1080 },
+        diceOfDoom: { show: document.getElementById('dice-show').checked, url: document.getElementById('dice-url').value, pos: 'top-left', width: 1920, height: 1080 },
+        ticker: { show: document.getElementById('ticker-show').checked, showProgressBar: document.getElementById('ticker-bar').checked, customText: document.getElementById('ticker-custom').value },
+        alerts: { pos: document.getElementById('alert-pos').value },
+        effects: { sound: document.getElementById('effect-sound').checked, visual: document.getElementById('effect-visual').checked },
+        targetTime: document.getElementById('target-time').value ? new Date(document.getElementById('target-time').value).getTime() : null
       };
-      client.publish(topic, JSON.stringify(payload));
+      
+      sendPayload('config', config);
+
+      const uiState = {
+        clockShow: config.clock.show, clockPos: config.clock.pos, clockScale: config.clock.scale, targetTime: document.getElementById('target-time').value,
+        emoteShow: config.emoteWall.show, emoteUrl: config.emoteWall.url, 
+        bandShow: config.bandEffects.show, bandUrl: config.bandEffects.url, 
+        diceShow: config.diceOfDoom.show, diceUrl: config.diceOfDoom.url, 
+        tickerShow: config.ticker.show, tickerBar: config.ticker.showProgressBar, 
+        tickerCustom: document.getElementById('ticker-custom').value, tickerLoops: document.getElementById('ticker-loops').value, alertPos: config.alerts.pos,
+        npPos: document.getElementById('np-pos').value, effectSound: config.effects.sound, effectVisual: config.effects.visual
+      };
+      localStorage.setItem('extralife_dashboard_ui', JSON.stringify(uiState));
     }
 
-    function sendTickerMessage() {
-      if(!client.connected) return;
-      const text = document.getElementById('ticker-msg').value;
-      if (text.trim() === "") return;
-      client.publish(topic, JSON.stringify({ type: 'stage_ticker', payload: { text: text, loops: parseInt(document.getElementById('ticker-loops').value) || 3 } }));
-      document.getElementById('ticker-msg').value = "";
+    function triggerCustomNowPlaying() {
+      sendPayload('now_playing', {
+        title: document.getElementById('np-title').value || "Unknown Track",
+        artist: document.getElementById('np-artist').value || "Unknown Artist",
+        art: document.getElementById('np-art').value || "https://upload.wikimedia.org/wikipedia/commons/c/ca/CD-ROM.png",
+        pos: document.getElementById('np-pos').value
+      });
+      document.getElementById('np-title').value = "";
+      document.getElementById('np-artist').value = "";
+      document.getElementById('np-art').value = "";
     }
 
-    function sendNowPlaying() {
-      if(!client.connected) return;
-      client.publish(topic, JSON.stringify({ 
-        type: 'now_playing', 
-        payload: { title: document.getElementById('np-title').value || "Track", artist: document.getElementById('np-artist').value || "Artist", pos: 'top-left' } 
-      }));
+    function stageCustomText() {
+      const text = document.getElementById('ticker-custom').value;
+      const loops = parseInt(document.getElementById('ticker-loops').value) || 1;
+      sendPayload('stage_ticker', { text, loops });
     }
 
-    function fireConfetti() { if(client.connected) client.publish(topic, JSON.stringify({ type: 'confetti' })); }
-
-    function sendTestAlert(amount) {
-      if(!client.connected) return;
-      const customName = document.getElementById('test-alert-name').value || "Test Hero";
-      client.publish(topic, JSON.stringify({ type: 'alert', payload: { id: 'TEST_' + Date.now(), name: customName, amount: amount, timestamp: Date.now() } }));
+    function sendManualAlert() {
+      const name = document.getElementById('alert-name').value || "Anonymous"; 
+      const amount = document.getElementById('alert-amount').value || "0";
+      sendPayload('alert', { name: name, amount: amount, timestamp: Date.now() });
+      document.getElementById('alert-name').value = ""; 
+      document.getElementById('alert-amount').value = "";
     }
 
-    function controlDice(command) { if(client.connected) client.publish(topic, JSON.stringify({ type: 'dice_roll', payload: command })); }
+    window.addEventListener('load', () => { 
+        loadSavedConfig(); 
+        updateConfig(true); 
+    });
   </script>
 </body>
 </html>
