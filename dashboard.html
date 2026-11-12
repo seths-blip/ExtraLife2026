@@ -45,7 +45,6 @@
 
   <div class="dashboard-grid">
     
-    <!-- CLOCK & TICKER -->
     <div class="panel">
       <h2>⏱️ Time & Ticker</h2>
       <div class="control-group">
@@ -90,13 +89,10 @@
       </div>
     </div>
 
-    <!-- 1-CLICK MUSIC PLAYER -->
     <div class="panel">
       <h2>🎵 Now Playing Dropdown</h2>
       <p style="font-size: 13px; color: #aaa; margin: -5px 0 10px 0;">Click a track below to instantly slide it onto the stream.</p>
-      
       <div id="playlist-container"></div>
-      
       <div class="control-group">
         <label>Slide-in Anchor</label>
         <div class="input-box">
@@ -108,7 +104,6 @@
           </select>
         </div>
       </div>
-
       <hr>
       <h3 style="margin:0 0 10px 0; font-size:14px; color:#ccc;">Manual Custom Track Override</h3>
       <div class="control-group">
@@ -127,7 +122,6 @@
       <button class="btn-special" onclick="triggerCustomNowPlaying()" style="margin-top: 10px;">▶ PUSH MANUAL TRACK</button>
     </div>
 
-    <!-- WIDGETS -->
     <div class="panel">
       <h2>🔗 Fullscreen Web Widgets</h2>
       <div class="control-group">
@@ -156,7 +150,6 @@
       <button onclick="sendPayload('dice_reset', null)" style="margin-top: 10px;">Reset Dice to Skull</button>
     </div>
 
-    <!-- ALERTS & EFFECTS -->
     <div class="panel">
       <h2>⚔️ Alerts & Effects</h2>
       <div class="control-group">
@@ -194,20 +187,17 @@
       </div>
       <button class="btn-special" style="margin-top:auto;" onclick="sendPayload('confetti', null)">🎉 FIRE CONFETTI CANNON</button>
     </div>
-
   </div>
 
   <script>
     const teamID = "74089"; 
     const topicName = `extralife2026/${teamID}/commands`;
     
-    // Explicit, unique Client ID to prevent dropped connections
     const myClientID = 'dash_' + Math.random().toString(36).substring(2, 10);
     const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt', { clientId: myClientID, clean: true });
     
     let isNetworkSyncing = false;
 
-    // Guaranteed fallback playlist so you are never locked out by CORS
     const fallbackPlaylist = [
       { "title": "A Sorcerers Last Hope", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },  
       { "title": "Amethyst Rain", "artist": "Norse Foundry", "art": "images/NorseFoundryVerticalLogo.png" },
@@ -310,13 +300,7 @@
             `;
             
             div.onclick = () => {
-                sendPayload('now_playing', {
-                    title: title,
-                    artist: artist,
-                    art: art,
-                    pos: document.getElementById('np-pos').value
-                });
-                
+                sendPayload('now_playing', { title: title, artist: artist, art: art, pos: document.getElementById('np-pos').value });
                 div.style.borderColor = "#D4AF37";
                 setTimeout(() => div.style.borderColor = "transparent", 800);
             };
@@ -410,9 +394,7 @@
         art: document.getElementById('np-art').value || "https://upload.wikimedia.org/wikipedia/commons/c/ca/CD-ROM.png",
         pos: document.getElementById('np-pos').value
       });
-      document.getElementById('np-title').value = "";
-      document.getElementById('np-artist').value = "";
-      document.getElementById('np-art').value = "";
+      document.getElementById('np-title').value = ""; document.getElementById('np-artist').value = ""; document.getElementById('np-art').value = "";
     }
 
     function stageCustomText() {
@@ -425,8 +407,7 @@
       const name = document.getElementById('alert-name').value || "Anonymous"; 
       const amount = document.getElementById('alert-amount').value || "0";
       sendPayload('alert', { name: name, amount: amount, timestamp: Date.now() });
-      document.getElementById('alert-name').value = ""; 
-      document.getElementById('alert-amount').value = "";
+      document.getElementById('alert-name').value = ""; document.getElementById('alert-amount').value = "";
     }
 
     window.addEventListener('load', () => { 
