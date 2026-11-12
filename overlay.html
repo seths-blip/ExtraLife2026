@@ -198,10 +198,11 @@
           clearTimeout(npTimeout);
           npTimeout = setTimeout(() => np.classList.remove('active'), 12000);
         }
+        
+        // CRITICAL UPDATE: Forwards exact dashboard payload (ROLL_DICE or RESET_DICE) 
         if (data.type === 'dice_roll') {
           const diceFrame = document.getElementById('dice-of-doom');
           if (diceFrame && diceFrame.contentWindow) {
-            // Passes the specific command (ROLL or RESET) from the dashboard
             diceFrame.contentWindow.postMessage(data.payload || 'ROLL_DICE', '*');
           }
         }
@@ -267,17 +268,13 @@
         const tData = await tRes.json(); 
         let raised = tData.sumDonations || 0; 
         
-        // Highly optimized payload size: only pull the 15 most recent donations
         const dRes = await fetch(`${apiURL}/donations?limit=15&_t=${cacheBuster}`, { cache: 'no-store' }); 
         if(!dRes.ok) return; 
 
         const dData = await dRes.json();
         const dons = Array.isArray(dData) ? dData : [];
 
-        if (raised > 0 && dons.length === 0) {
-            console.warn("DonorDrive API Cache Lag Detected. Waiting for proper data sync...");
-            return;
-        }
+        if (raised > 0 && dons.length === 0) return;
         
         let goal = tData.fundraisingGoal || 1; 
         document.getElementById('progress-bar-fill').style.width = Math.min((raised / goal) * 100, 100) + '%'; 
