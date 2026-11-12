@@ -9,216 +9,186 @@
       background: transparent;
       width: 1920px;
       height: 1080px;
-      perspective: 1200px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      cursor: pointer; /* Makes the whole screen obviously clickable */
     }
 
-    #dice-container {
-      width: 200px;
-      height: 200px;
-      position: absolute;
-      transform-style: preserve-3d;
-      /* Starts off-screen to the right */
-      transform: translate3d(150vw, -50vh, -1000px) rotateX(0deg) rotateY(0deg) rotateZ(0deg);
-      transition: transform 2.5s cubic-bezier(0.15, 0.75, 0.25, 1);
-      display: none;
-      z-index: 10;
-    }
-
-    .face {
-      position: absolute;
-      width: 200px;
-      height: 200px;
-      background: rgba(20, 20, 20, 0.95);
-      border: 4px solid #FF5555;
-      border-radius: 15px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: inset 0 0 40px rgba(255, 85, 85, 0.5), 0 0 20px rgba(0, 0, 0, 0.8);
-    }
-
-    .dot {
-      width: 40px;
-      height: 40px;
-      background: #FF5555;
-      border-radius: 50%;
-      box-shadow: 0 0 15px #FF5555;
-      position: absolute;
-    }
-
-    /* Face Positioning */
-    #front  { transform: translateZ(100px); }
-    #back   { transform: rotateY(180deg) translateZ(100px); }
-    #right  { transform: rotateY(90deg) translateZ(100px); }
-    #left   { transform: rotateY(-90deg) translateZ(100px); }
-    #top    { transform: rotateX(90deg) translateZ(100px); }
-    #bottom { transform: rotateX(-90deg) translateZ(100px); }
-
-    /* Dot Layouts */
-    #front .dot1 { top: 80px; left: 80px; }
-    
-    #back .dot1 { top: 40px; left: 40px; }
-    #back .dot2 { top: 120px; left: 120px; }
-    
-    #right .dot1 { top: 40px; left: 40px; }
-    #right .dot2 { top: 80px; left: 80px; }
-    #right .dot3 { top: 120px; left: 120px; }
-    
-    #left .dot1 { top: 40px; left: 40px; }
-    #left .dot2 { top: 40px; left: 120px; }
-    #left .dot3 { top: 120px; left: 40px; }
-    #left .dot4 { top: 120px; left: 120px; }
-    
-    #top .dot1 { top: 40px; left: 40px; }
-    #top .dot2 { top: 40px; left: 120px; }
-    #top .dot3 { top: 80px; left: 80px; }
-    #top .dot4 { top: 120px; left: 40px; }
-    #top .dot5 { top: 120px; left: 120px; }
-    
-    #bottom .dot1 { top: 30px; left: 40px; }
-    #bottom .dot2 { top: 30px; left: 120px; }
-    #bottom .dot3 { top: 80px; left: 40px; }
-    #bottom .dot4 { top: 80px; left: 120px; }
-    #bottom .dot5 { top: 130px; left: 40px; }
-    #bottom .dot6 { top: 130px; left: 120px; }
-
-    /* Tempt Fate Popup Box */
-    #tempt-popup {
-      position: absolute;
-      bottom: 200px;
+    #doom-container {
       background: rgba(0, 0, 0, 0.85);
       border: 4px solid #D4AF37;
-      padding: 25px 50px;
-      border-radius: 10px;
+      border-radius: 15px;
+      padding: 40px 60px;
       text-align: center;
       color: white;
-      box-shadow: 0px 0px 20px rgba(212, 175, 55, 0.4);
-      z-index: 20;
-      opacity: 0;
-      pointer-events: none;
-      transform: translateY(20px);
-      transition: all 0.5s ease-out;
+      box-shadow: 0px 0px 30px rgba(212, 175, 55, 0.4);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 320px;
+      min-height: 300px;
+      transition: transform 0.2s ease-in-out;
     }
 
-    #tempt-popup.show {
-      opacity: 1;
-      pointer-events: auto;
-      transform: translateY(0);
+    #doom-container:hover {
+      transform: scale(1.02);
+      box-shadow: 0px 0px 40px rgba(212, 175, 55, 0.6);
     }
 
-    #tempt-popup h2 {
-      margin: 0 0 15px 0;
+    .prompt-text {
       color: #D4AF37;
-      font-size: 28px;
+      font-size: 32px;
       text-transform: uppercase;
-      letter-spacing: 2px;
-    }
-
-    #tempt-btn {
-      background: #FF5555;
-      color: white;
-      border: 2px solid #CC0000;
-      padding: 15px 30px;
-      font-size: 22px;
+      letter-spacing: 3px;
       font-weight: bold;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-transform: uppercase;
+      margin-top: 25px;
     }
 
-    #tempt-btn:hover {
-      background: #CC0000;
-      transform: scale(1.05);
-      box-shadow: 0px 0px 15px rgba(255, 85, 85, 0.6);
+    /* Clean SVG Skull - No Emojis */
+    .skull-icon {
+      width: 120px;
+      height: 120px;
+      fill: #FFF;
+      transition: fill 0.3s;
     }
 
+    #doom-container:hover .skull-icon {
+      fill: #FF5555;
+    }
+
+    /* D20 Polygon Shape */
+    #d20-graphic {
+      width: 140px;
+      height: 140px;
+      position: relative;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hexagon {
+      width: 100%;
+      height: 100%;
+      background: #FF5555;
+      /* Creates the hexagonal silhouette of a 3D D20 */
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      position: absolute;
+      box-shadow: inset 0 0 30px rgba(0,0,0,0.6);
+    }
+
+    .d20-lines {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      background: 
+        linear-gradient(to bottom right, transparent 48%, rgba(0,0,0,0.4) 49%, rgba(0,0,0,0.4) 51%, transparent 52%),
+        linear-gradient(to top right, transparent 48%, rgba(0,0,0,0.4) 49%, rgba(0,0,0,0.4) 51%, transparent 52%),
+        linear-gradient(to bottom, transparent 48%, rgba(0,0,0,0.4) 49%, rgba(0,0,0,0.4) 51%, transparent 52%);
+    }
+
+    #roll-number {
+      position: absolute;
+      font-size: 58px;
+      font-weight: bold;
+      color: white;
+      text-shadow: 2px 2px 5px rgba(0,0,0,0.9);
+      z-index: 2;
+    }
+
+    /* Rolling Animation */
+    .rolling {
+      animation: spin-tumble 0.4s linear infinite;
+    }
+
+    @keyframes spin-tumble {
+      0% { transform: rotate(0deg) scale(1); }
+      50% { transform: rotate(180deg) scale(1.1); }
+      100% { transform: rotate(360deg) scale(1); }
+    }
   </style>
 </head>
 <body>
 
-  <div id="dice-container">
-    <div class="face" id="front"><div class="dot dot1"></div></div>
-    <div class="face" id="back"><div class="dot dot1"></div><div class="dot dot2"></div></div>
-    <div class="face" id="right"><div class="dot dot1"></div><div class="dot dot2"></div><div class="dot dot3"></div></div>
-    <div class="face" id="left"><div class="dot dot1"></div><div class="dot dot2"></div><div class="dot dot3"></div><div class="dot dot4"></div></div>
-    <div class="face" id="top"><div class="dot dot1"></div><div class="dot dot2"></div><div class="dot dot3"></div><div class="dot dot4"></div><div class="dot dot5"></div></div>
-    <div class="face" id="bottom"><div class="dot dot1"></div><div class="dot dot2"></div><div class="dot dot3"></div><div class="dot dot4"></div><div class="dot dot5"></div><div class="dot dot6"></div></div>
-  </div>
+  <div id="doom-container">
+    
+    <!-- State 1: The Skull -->
+    <div id="state-start">
+      <svg class="skull-icon" viewBox="0 0 512 512">
+        <path d="M256 0C132.3 0 32 100.3 32 224c0 74.3 36.5 140 92.5 181.3l-10.2 61.4c-2.3 13.9 8.3 25.3 22.4 25.3h238.6c14.1 0 24.7-11.4 22.4-25.3l-10.2-61.4C443.5 364 480 298.3 480 224 480 100.3 379.7 0 256 0zm-80 304c-26.5 0-48-21.5-48-48s21.5-48 48-48 48 21.5 48 48-21.5 48-48 48zm160 0c-26.5 0-48-21.5-48-48s21.5-48 48-48 48 21.5 48 48-21.5 48-48 48z"/>
+      </svg>
+      <div class="prompt-text" id="main-prompt">Tempt Fate?</div>
+    </div>
 
-  <div id="tempt-popup">
-    <h2>The Die is Cast</h2>
-    <button id="tempt-btn">🎲 Tempt Fate 🎲</button>
+    <!-- State 2: The D20 Roll -->
+    <div id="d20-graphic">
+      <div class="hexagon"></div>
+      <div class="d20-lines"></div>
+      <div id="roll-number">20</div>
+    </div>
+
   </div>
 
   <script>
-    const dice = document.getElementById('dice-container');
-    const popup = document.getElementById('tempt-popup');
-    const temptBtn = document.getElementById('tempt-btn');
     let isRolling = false;
+    let rollInterval;
+    
+    const stateStart = document.getElementById('state-start');
+    const d20Graphic = document.getElementById('d20-graphic');
+    const rollNumber = document.getElementById('roll-number');
+    const mainPrompt = document.getElementById('main-prompt');
 
-    const faceRotations = [
-      { x: 0, y: 0 },       // 1 (Front)
-      { x: 0, y: -180 },    // 2 (Back)
-      { x: 0, y: -90 },     // 3 (Right)
-      { x: 0, y: 90 },      // 4 (Left)
-      { x: -90, y: 0 },     // 5 (Top)
-      { x: 90, y: 0 }       // 6 (Bottom)
-    ];
-
-    // Remote Control Listener (For the Dashboard/Evmux)
+    // 1. Listen for remote Evmux / Dashboard commands
     window.addEventListener('message', (event) => {
       if (event.data === 'ROLL_DICE' && !isRolling) {
-        rollDice();
+        startRoll();
       }
     });
 
-    // Direct Button Click Listener (For the Popup)
-    temptBtn.addEventListener('click', () => {
+    // 2. Direct Webpage Interaction
+    document.body.addEventListener('click', () => {
       if (!isRolling) {
-        rollDice();
+        startRoll();
       }
     });
 
-    function rollDice() {
+    function startRoll() {
       isRolling = true;
-      dice.style.display = 'block';
       
-      // Instantly hide the Tempt Fate popup
-      popup.classList.remove('show');
+      // Hide the skull, show the D20
+      stateStart.style.display = 'none';
+      d20Graphic.style.display = 'flex';
       
-      dice.style.transition = 'none';
-      dice.style.transform = `translate3d(150vw, -50vh, -1000px) rotateX(0deg) rotateY(0deg) rotateZ(0deg)`;
+      // Remove the prompt text while it spins
+      mainPrompt.innerText = "";
+      stateStart.style.display = 'block'; // Keep container sized
+      document.querySelector('.skull-icon').style.display = 'none';
+      
+      // Add CSS spin animation
+      d20Graphic.classList.add('rolling');
 
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          
-          dice.style.transition = 'transform 2.5s cubic-bezier(0.15, 0.75, 0.25, 1)';
-          
-          const resultIndex = Math.floor(Math.random() * 6);
-          const target = faceRotations[resultIndex];
-          
-          const spinX = target.x + (360 * (Math.floor(Math.random() * 4) + 3)); 
-          const spinY = target.y + (360 * (Math.floor(Math.random() * 4) + 3));
-          const spinZ = 360 * (Math.floor(Math.random() * 2) + 1);
+      // Rapidly cycle numbers to simulate a roll
+      rollInterval = setInterval(() => {
+        rollNumber.innerText = Math.floor(Math.random() * 20) + 1;
+      }, 50);
 
-          const landX = (Math.random() * 40) - 20; 
-          const landY = (Math.random() * 40) - 20;
+      // Stop the roll after 2 seconds
+      setTimeout(() => {
+        clearInterval(rollInterval);
+        d20Graphic.classList.remove('rolling');
+        
+        // Final D20 result (1-20)
+        const finalResult = Math.floor(Math.random() * 20) + 1;
+        rollNumber.innerText = finalResult;
 
-          dice.style.transform = `translate3d(${landX}px, ${landY}px, 0px) rotateX(${spinX}deg) rotateY(${spinY}deg) rotateZ(${spinZ}deg)`;
-
-          // Wait for the physical roll animation to finish, then reveal the popup
-          setTimeout(() => {
-            isRolling = false;
-            popup.classList.add('show');
-          }, 2600);
-
-        });
-      });
+        // Restore the "Tempt Fate Again" text
+        mainPrompt.innerText = "Tempt Fate Again";
+        
+        isRolling = false;
+      }, 2000);
     }
   </script>
 </body>
