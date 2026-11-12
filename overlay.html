@@ -40,6 +40,10 @@
     #alert-wrapper { position: absolute; z-index: 9999; transition: all 0.5s ease; width: max-content; height: max-content; }
     #alert-box { display: none; background-color: #8B0000; border: 4px solid #D4AF37; padding: 15px 30px; font-size: 36px; text-align: center; text-shadow: 2px 2px #000; box-shadow: 0px 0px 15px #D4AF37; animation: popup 0.5s ease-out; white-space: nowrap; }
     @keyframes popup { 0% { transform: translateY(50px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+    
+    #confetti-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9998; overflow: hidden; }
+    .confetti-piece { position: absolute; font-size: 30px; animation: fall 3s linear forwards; }
+    @keyframes fall { 0% { transform: translateY(-50px) rotate(0deg); opacity: 1; } 100% { transform: translateY(1100px) rotate(720deg); opacity: 0; } }
     .gold-text { color: #D4AF37; } .green-text { color: #55FF55; }
   </style>
 </head>
@@ -66,13 +70,15 @@
   <div id="progress-bar-bg"><div id="progress-bar-fill"></div></div>
   <div id="alert-wrapper"><div id="alert-box"><span>⚔️ CRITICAL HIT! ⚔️</span><br><span id="alert-text" class="gold-text"></span></div></div>
 
-  <!-- Cleaned Text Ticker (No Canvas Logic) -->
+  <!-- Cleaned Text Ticker -->
   <div id="ticker-wrap">
     <div class="ticker-track" id="main-ticker-track">
       <div class="ticker-item"><span id="ticker-text-1">Loading Guild Data...</span></div>
       <div class="ticker-item"><span id="ticker-text-2">Loading Guild Data...</span></div>
     </div>
   </div>
+
+  <div id="confetti-container"></div>
 
   <script>
     const teamID = "74089"; 
@@ -178,6 +184,8 @@
           }
         }
         
+        if (data.type === 'confetti') fireConfetti();
+        
         if (data.type === 'stage_ticker') {
           stagedTicker.pendingText = data.payload.text; 
           stagedTicker.pendingLoops = data.payload.loops; 
@@ -216,6 +224,32 @@
         if (stagedTicker.loops <= 0) { stagedTicker.active = false; stagedTicker.text = ""; }
       }
     });
+
+    let globalAudioCtx = null;
+    function playCriticalHitSound() {
+      if (!soundsEnabled) return;
+      try { 
+        if (!globalAudioCtx) globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = globalAudioCtx.createOscillator(); const g = globalAudioCtx.createGain();
+        osc.type = 'triangle'; osc.connect(g); g.connect(globalAudioCtx.destination);
+        const now = globalAudioCtx.currentTime;
+        osc.frequency.setValueAtTime(440, now); osc.frequency.exponentialRampToValueAtTime(880, now + 0.5);
+        g.gain.setValueAtTime(0.2, now); g.gain.exponentialRampToValueAtTime(0.00001, now + 1);
+        osc.start(now); osc.stop(now + 1); 
+      } catch(e) {} 
+    }
+
+    function fireConfetti() {
+      const container = document.getElementById('confetti-container'); 
+      const emojis = ['🎉', '💸', '✨', '🪙', '🎮', '⚔️'];
+      for (let i = 0; i < 50; i++) { 
+        let el = document.createElement('div'); el.innerText = emojis[Math.floor(Math.random() * emojis.length)]; 
+        el.className = 'confetti-piece'; el.style.left = Math.random() * 100 + 'vw'; 
+        el.style.animationDuration = (Math.random() * 2 + 2) + 's'; el.style.fontSize = (Math.random() * 20 + 20) + 'px'; 
+        container.appendChild(el); setTimeout(() => el.remove(), 5000); 
+      }
+      playCriticalHitSound();
+    }
 
     setInterval(() => {
       let now = new Date().getTime(), distance = targetDate - now, isOvertime = distance < 0, absDist = Math.abs(distance);
@@ -286,21 +320,6 @@
         } 
         isFirstLoad = false; 
       } catch(err){} 
-    }
-    
-    // Critical Hit Audio Logic Retained
-    let globalAudioCtx = null;
-    function playCriticalHitSound() {
-      if (!soundsEnabled) return;
-      try { 
-        if (!globalAudioCtx) globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = globalAudioCtx.createOscillator(); const g = globalAudioCtx.createGain();
-        osc.type = 'triangle'; osc.connect(g); g.connect(globalAudioCtx.destination);
-        const now = globalAudioCtx.currentTime;
-        osc.frequency.setValueAtTime(440, now); osc.frequency.exponentialRampToValueAtTime(880, now + 0.5);
-        g.gain.setValueAtTime(0.2, now); g.gain.exponentialRampToValueAtTime(0.00001, now + 1);
-        osc.start(now); osc.stop(now + 1); 
-      } catch(e) {} 
     }
     
     function processQueue() { 
