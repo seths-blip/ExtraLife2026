@@ -200,7 +200,10 @@
         }
         if (data.type === 'dice_roll') {
           const diceFrame = document.getElementById('dice-of-doom');
-          if (diceFrame && diceFrame.contentWindow) diceFrame.contentWindow.postMessage('ROLL_DICE', '*');
+          if (diceFrame && diceFrame.contentWindow) {
+            // Passes the specific command (ROLL or RESET) from the dashboard
+            diceFrame.contentWindow.postMessage(data.payload || 'ROLL_DICE', '*');
+          }
         }
       } catch(e) {}
     });
