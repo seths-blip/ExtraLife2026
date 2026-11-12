@@ -338,7 +338,7 @@
           if(!seenDonationIDs.includes(dons[i].donationID)){ 
             seenDonationIDs.push(dons[i].donationID); 
             if(!isFirstLoad) {
-              const newAlert = { id: dons[i].donationID, name: dons[i].displayName || "Hero", amount: dons[i].amount, timestamp: Date.now() };
+              const newAlert = { id: dons[i].donationID, name: dons[i].displayName || "A Hero", amount: dons[i].amount, timestamp: Date.now() };
               if(client.connected) client.publish(topicName, JSON.stringify({ type: 'alert', payload: newAlert }));
             } 
           } 
