@@ -162,13 +162,23 @@
 
     const topicName = `extralife2026/${teamID}/commands`;
     const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt'); 
+    let processedAlerts = []; 
+    
     client.on('connect', () => { client.subscribe(topicName); client.publish(topicName, JSON.stringify({ type: 'request_sync' })); });
 
     client.on('message', (topic, message) => {
       try {
         const data = JSON.parse(message.toString());
         if (data.type === 'config') applyConfig(data.payload);
-        if (data.type === 'alert') donationQueue.push(data.payload);
+        
+        if (data.type === 'alert' && data.payload) {
+          const alertId = data.payload.id || data.payload.timestamp;
+          if (!processedAlerts.includes(alertId)) {
+            processedAlerts.push(alertId);
+            donationQueue.push(data.payload);
+          }
+        }
+        
         if (data.type === 'confetti') fireConfetti();
         if (data.type === 'stage_ticker') {
           stagedTicker.pendingText = data.payload.text; 
@@ -203,7 +213,6 @@
         stagedTicker.loops--; 
         if (stagedTicker.loops <= 0) { stagedTicker.active = false; stagedTicker.text = ""; }
       }
-      fetchExtraLifeData(); 
     });
 
     let globalAudioCtx = null;
@@ -242,29 +251,32 @@
     
     async function fetchExtraLifeData() { 
       try { 
+        const cacheBuster = Date.now();
         let apiURL = `https://extralife.donordrive.com/api/teams/${teamID}`;
-        let tRes = await fetch(apiURL);
         
+        let tRes = await fetch(`${apiURL}?_t=${cacheBuster}`, { cache: 'no-store' });
         if(!tRes.ok) {
           apiURL = `https://extralife.donordrive.com/api/participants/${teamID}`;
-          tRes = await fetch(apiURL);
+          tRes = await fetch(`${apiURL}?_t=${cacheBuster}`, { cache: 'no-store' });
         }
-        if(!tRes.ok) {
-          let errStr = `🚨 API ERROR: EXTRA LIFE ID ${teamID} IS OFFLINE OR RESTRICTED 🚨 &nbsp;&nbsp;&nbsp;`;
-          document.getElementById('ticker-text-1').innerHTML = errStr; document.getElementById('ticker-text-2').innerHTML = errStr;
-          return;
-        }
+        if(!tRes.ok) return;
 
         const tData = await tRes.json(); 
+        let raised = tData.sumDonations || 0; 
         
-        let dons = [];
-        const dRes = await fetch(`${apiURL}/donations`); 
-        if(dRes.ok) {
-          const dData = await dRes.json();
-          if (Array.isArray(dData)) dons = dData;
+        // Highly optimized payload size: only pull the 15 most recent donations
+        const dRes = await fetch(`${apiURL}/donations?limit=15&_t=${cacheBuster}`, { cache: 'no-store' }); 
+        if(!dRes.ok) return; 
+
+        const dData = await dRes.json();
+        const dons = Array.isArray(dData) ? dData : [];
+
+        if (raised > 0 && dons.length === 0) {
+            console.warn("DonorDrive API Cache Lag Detected. Waiting for proper data sync...");
+            return;
         }
         
-        let raised = tData.sumDonations || 0; let goal = tData.fundraisingGoal || 1; 
+        let goal = tData.fundraisingGoal || 1; 
         document.getElementById('progress-bar-fill').style.width = Math.min((raised / goal) * 100, 100) + '%'; 
         
         let str = ""; 
@@ -287,33 +299,34 @@
           if(!seenDonationIDs.includes(dons[i].donationID)){ 
             seenDonationIDs.push(dons[i].donationID); 
             if(!isFirstLoad) {
-              const newAlert = { name: dons[i].displayName || "Hero", amount: dons[i].amount };
-              donationQueue.push(newAlert);
+              const newAlert = { id: dons[i].donationID, name: dons[i].displayName || "Hero", amount: dons[i].amount, timestamp: Date.now() };
               
               if(client.connected) {
                 client.publish(topicName, JSON.stringify({ type: 'alert', payload: newAlert }));
+              } else {
+                donationQueue.push(newAlert);
               }
             } 
           } 
         } 
         isFirstLoad = false; 
-      } catch(err){
-        let errStr = `🚨 NETWORK ERROR: ${err.message} 🚨 &nbsp;&nbsp;&nbsp;`;
-        document.getElementById('ticker-text-1').innerHTML = errStr; 
-        document.getElementById('ticker-text-2').innerHTML = errStr; 
-      } 
+      } catch(err){} 
     }
     
     function processQueue() { 
       if(isAlerting || donationQueue.length === 0) return; 
       isAlerting = true; 
-      let cur = donationQueue.shift(); 
-      document.getElementById('alert-text').innerHTML = `${cur.name} gifted <span class="green-text">$${cur.amount}</span>!`; 
-      document.getElementById('alert-box').style.display = 'block'; 
-      setTimeout(() => {
-        document.getElementById('alert-box').style.display = 'none'; 
-        setTimeout(() => isAlerting = false, 2000);
-      }, 8000); 
+      try {
+        let cur = donationQueue.shift(); 
+        document.getElementById('alert-text').innerHTML = `${cur.name} gifted <span class="green-text">$${cur.amount}</span>!`; 
+        document.getElementById('alert-box').style.display = 'block'; 
+        setTimeout(() => {
+          document.getElementById('alert-box').style.display = 'none'; 
+          setTimeout(() => isAlerting = false, 2000);
+        }, 8000); 
+      } catch(e) {
+        isAlerting = false; 
+      }
     }
     
     setInterval(fetchExtraLifeData, 15000); fetchExtraLifeData(); setInterval(processQueue, 1000);
