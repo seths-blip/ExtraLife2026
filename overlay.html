@@ -12,15 +12,14 @@
     iframe.widget { background: transparent !important; border: none; overflow: hidden; }
     
     #countdown-widget { background: rgba(0,0,0,0.85); border: 4px solid #D4AF37; padding: 20px; text-align: center; border-radius: 10px; display: none; z-index: 100; }
-    .cd-label { font-size: 24px; color: #D4AF37; } 
+    .cd-label { font-size: 24px; color: #D4AF37; transition: color 0.5s; } 
     #cd-time { font-size: 48px; }
 
-    #np-wrapper { z-index: 150; pointer-events: none; }
     #now-playing-widget {
-      opacity: 0; pointer-events: none;
+      position: absolute; opacity: 0; pointer-events: none;
       transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       background: rgba(0,0,0,0.85); border: 4px solid #D4AF37; border-radius: 10px;
-      display: flex; align-items: center; padding: 15px 25px; gap: 20px;
+      display: flex; align-items: center; padding: 15px 25px; gap: 20px; z-index: 150;
       transform: translateY(-50px) scale(0.9);
     }
     #now-playing-widget.active { opacity: 1; transform: translateY(0) scale(1); }
@@ -37,40 +36,58 @@
     #progress-bar-bg { position: absolute; bottom: 54px; left: 0; width: 100%; height: 6px; background: rgba(0,0,0,0.5); z-index: 1001; display: none; }
     #progress-bar-fill { width: 0%; height: 100%; background: #55FF55; box-shadow: 0 0 10px #55FF55; transition: width 2s ease-in-out; }
 
-    #alert-wrapper { position: absolute; z-index: 9999; transition: all 0.5s ease; width: max-content; height: max-content; }
-    #alert-box { display: none; background-color: #8B0000; border: 4px solid #D4AF37; padding: 15px 30px; font-size: 36px; text-align: center; text-shadow: 2px 2px #000; box-shadow: 0px 0px 15px #D4AF37; animation: popup 0.5s ease-out; white-space: nowrap; }
-    @keyframes popup { 0% { transform: translateY(50px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+    /* EPIC RPG ALERT STYLING RESTORED */
+    #alert-wrapper { position: absolute; z-index: 9999; display: flex; justify-content: center; width: 100%; top: 15%; pointer-events: none; }
+    #alert-box { 
+        display: none; 
+        background: linear-gradient(135deg, rgba(20,20,20,0.95), rgba(60,0,0,0.95)); 
+        border: 4px solid #D4AF37; 
+        border-radius: 12px; 
+        padding: 25px 60px; 
+        text-align: center; 
+        box-shadow: 0 0 40px rgba(212, 175, 55, 0.4), inset 0 0 20px rgba(255, 0, 0, 0.5); 
+        animation: epic-popup 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
+        white-space: nowrap; 
+    }
+    @keyframes epic-popup { 0% { transform: scale(0.1) translateY(100px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
+    .alert-title { font-size: 52px; color: #FF5555; text-shadow: 3px 3px 0 #000, 0 0 20px #FF5555; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 6px; }
+    .alert-body { font-size: 42px; color: #FFF; text-shadow: 2px 2px 5px #000; }
     
     #confetti-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9998; overflow: hidden; }
     .confetti-piece { position: absolute; font-size: 30px; animation: fall 3s linear forwards; }
     @keyframes fall { 0% { transform: translateY(-50px) rotate(0deg); opacity: 1; } 100% { transform: translateY(1100px) rotate(720deg); opacity: 0; } }
+    
     .gold-text { color: #D4AF37; } .green-text { color: #55FF55; }
   </style>
 </head>
 <body>
   
-  <iframe id="band-effects" class="widget" src="about:blank" allowtransparency="true" style="display:none; z-index: 55;"></iframe>
-  <iframe id="dice-of-doom" class="widget" src="about:blank" allowtransparency="true" style="display:none; z-index: 60;"></iframe>
+  <iframe id="emote-wall" class="widget" allowtransparency="true" style="display:none; z-index: 50;"></iframe>
+  <iframe id="band-effects" class="widget" allowtransparency="true" style="display:none; z-index: 55;"></iframe>
+  <iframe id="dice-of-doom" class="widget" allowtransparency="true" style="display:none; z-index: 60;"></iframe>
 
   <div id="countdown-widget" class="widget">
     <div class="cd-label">EXTRA LIFE MARATHON</div>
     <span id="cd-time">00:00:00</span>
   </div>
   
-  <div id="np-wrapper" class="widget">
-    <div id="now-playing-widget">
-      <img id="np-art" class="np-art" src="./stream-player/images/NorseFoundryVerticalLogo.png" alt="Album Art" onerror="if(!this.failed){this.failed=true; this.src='./stream-player/images/NorseFoundryVerticalLogo.png';} else {this.onerror=null; this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';}">
-      <div class="np-info">
-        <span class="np-title" id="np-title">Track</span>
-        <span class="np-artist" id="np-artist">Artist</span>
-      </div>
+  <div id="now-playing-widget">
+    <img id="np-art" class="np-art" src="stream-player/images/image_ef100c.png" alt="Album Art" onerror="this.src='stream-player/images/image_ef100c.png'">
+    <div class="np-info">
+      <span class="np-title" id="np-title">Track Name</span>
+      <span class="np-artist" id="np-artist">Artist Name</span>
     </div>
   </div>
 
   <div id="progress-bar-bg"><div id="progress-bar-fill"></div></div>
-  <div id="alert-wrapper"><div id="alert-box"><span>⚔️ CRITICAL HIT! ⚔️</span><br><span id="alert-text" class="gold-text"></span></div></div>
+  
+  <div id="alert-wrapper">
+    <div id="alert-box">
+      <div class="alert-title">⚔️ CRITICAL HIT! ⚔️</div>
+      <div class="alert-body" id="alert-text"></div>
+    </div>
+  </div>
 
-  <!-- Cleaned Text Ticker (No Canvas Logic) -->
   <div id="ticker-wrap">
     <div class="ticker-track" id="main-ticker-track">
       <div class="ticker-item"><span id="ticker-text-1">Loading Guild Data...</span></div>
@@ -83,81 +100,70 @@
   <script>
     const teamID = "74089"; 
     let targetDate = new Date().getTime() + (24 * 60 * 60 * 1000); 
+    
     let stagedTicker = { pending: false, active: false, text: "", loops: 0, pendingText: "", pendingLoops: 0 };
+    let customTickerText = "";
     let soundsEnabled = true, visualEffectsEnabled = true;
     let npTimeout;
 
     function applyPosition(el, pos, width, height) {
       if (!pos) pos = 'top-left'; 
-      el.style.top = ''; el.style.bottom = ''; el.style.left = ''; el.style.right = ''; 
-      let transformStr = 'translate(0, 0)';
-      if(width) el.style.width = width + (typeof width === 'number' ? 'px' : ''); 
-      if(height) el.style.height = height + (typeof height === 'number' ? 'px' : '');
+      el.style.top = ''; el.style.bottom = ''; el.style.left = ''; el.style.right = ''; el.style.transform = '';
+      if(width) el.style.width = width + 'px'; 
+      if(height) el.style.height = height + 'px';
       
       let originY = pos.includes('top') ? 'top' : (pos.includes('bottom') ? 'bottom' : 'center');
       let originX = pos.includes('left') ? 'left' : (pos.includes('right') ? 'right' : 'center');
       el.style.transformOrigin = `${originY} ${originX}`;
 
-      if (width == 1920 && height == 1080) {
-        el.style.top = '0px'; el.style.left = '0px'; el.style.transform = 'none'; return; 
-      }
-
       switch(pos) {
         case 'top-left': el.style.top = '50px'; el.style.left = '50px'; break;
         case 'top-right': el.style.top = '50px'; el.style.right = '50px'; break;
-        case 'top-center': el.style.top = '50px'; el.style.left = '50%'; transformStr = 'translateX(-50%)'; break;
+        case 'top-center': el.style.top = '50px'; el.style.left = '50%'; el.style.transform = 'translateX(-50%)'; break;
         case 'bottom-left': el.style.bottom = '80px'; el.style.left = '50px'; break; 
         case 'bottom-right': el.style.bottom = '80px'; el.style.right = '50px'; break;
-        case 'bottom-center': el.style.bottom = '80px'; el.style.left = '50%'; transformStr = 'translateX(-50%)'; break;
-        case 'center': el.style.top = '50%'; el.style.left = '50%'; transformStr = 'translate(-50%, -50%)'; break;
+        case 'bottom-center': el.style.bottom = '80px'; el.style.left = '50%'; el.style.transform = 'translateX(-50%)'; break;
+        case 'center': el.style.top = '50%'; el.style.left = '50%'; el.style.transform = 'translate(-50%, -50%)'; break;
+        case 'center-left': el.style.top = '50%'; el.style.left = '50px'; el.style.transform = 'translateY(-50%)'; break;
+        case 'center-right': el.style.top = '50%'; el.style.right = '50px'; el.style.transform = 'translateY(-50%)'; break;
       }
-      el.style.transform = transformStr;
     }
 
     function applyConfig(config) {
       if (!config) return;
-      try { localStorage.setItem('extralife_overlay_cache', JSON.stringify(config)); } catch(e) {}
       const clock = document.getElementById('countdown-widget'); 
       clock.style.display = config.clock.show ? 'block' : 'none'; 
       applyPosition(clock, config.clock.pos); 
       clock.style.transform += ` scale(${config.clock.scale})`; 
       
       const updateIframe = (id, data) => { 
-        const el = document.getElementById(id);
-        if (!el) return;
-        if (data && data.show && data.url && data.url.trim() !== "") {
-          el.style.display = 'block';
-          applyPosition(el, data.pos, data.width, data.height);
-          if (el.getAttribute('src') !== data.url) el.setAttribute('src', data.url);
-        } else {
-          el.style.display = 'none';
-          if (el.getAttribute('src') !== 'about:blank') el.setAttribute('src', 'about:blank');
-        }
+          if(!data) return;
+          const el = document.getElementById(id); 
+          el.style.display = data.show ? 'block' : 'none'; 
+          applyPosition(el, data.pos, data.width, data.height); 
+          
+          if (data.url && data.url.trim() !== "") {
+              if (el.getAttribute('src') !== data.url) el.setAttribute('src', data.url);
+          } else {
+              el.removeAttribute('src');
+          }
       };
       
-      updateIframe('band-effects', config.bandEffects);
+      updateIframe('emote-wall', config.emoteWall); 
+      updateIframe('band-effects', config.bandEffects); 
       updateIframe('dice-of-doom', config.diceOfDoom);
+
       document.getElementById('ticker-wrap').style.display = config.ticker.show ? 'flex' : 'none'; 
       document.getElementById('progress-bar-bg').style.display = config.ticker.showProgressBar ? 'block' : 'none';
+      customTickerText = config.ticker.customText || "";
+      
       applyPosition(document.getElementById('alert-wrapper'), config.alerts.pos);
       soundsEnabled = config.effects.sound; 
       visualEffectsEnabled = config.effects.visual; 
       if (config.targetTime) targetDate = parseInt(config.targetTime);
+      
+      fetchExtraLifeData(); 
     }
-
-    window.addEventListener('load', () => {
-      let configApplied = false;
-      try {
-        const cached = localStorage.getItem('extralife_overlay_cache');
-        if (cached) { applyConfig(JSON.parse(cached)); configApplied = true; }
-      } catch(e) {}
-      if (!configApplied) {
-        applyConfig({
-          clock: { show: true, pos: 'top-right', scale: 1 }, ticker: { show: true, showProgressBar: true },
-          alerts: { pos: 'center' }, effects: { sound: true, visual: true }, bandEffects: { show: false }, diceOfDoom: { show: false }
-        });
-      }
-    });
 
     const topicName = `extralife2026/${teamID}/commands`;
     const mqttOptions = {
@@ -167,62 +173,55 @@
         clean: true
     };
     const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt', mqttOptions); 
-    let processedAlerts = []; 
     
-    client.on('connect', () => { client.subscribe(topicName); client.publish(topicName, JSON.stringify({ type: 'request_sync' })); });
+    client.on('connect', () => { 
+        client.subscribe(topicName); 
+        client.publish(topicName, JSON.stringify({ type: 'request_sync' })); 
+    });
 
     client.on('message', (topic, message) => {
       try {
         const data = JSON.parse(message.toString());
         if (data.type === 'config') applyConfig(data.payload);
-        
-        if (data.type === 'alert' && data.payload) {
-          const alertId = data.payload.id || data.payload.timestamp;
-          if (!processedAlerts.includes(alertId)) {
-            processedAlerts.push(alertId);
-            donationQueue.push(data.payload);
-          }
-        }
-        
+        if (data.type === 'alert') donationQueue.push(data.payload);
         if (data.type === 'confetti') fireConfetti();
-        
         if (data.type === 'stage_ticker') {
-          stagedTicker.pendingText = data.payload.text; 
-          stagedTicker.pendingLoops = data.payload.loops; 
-          stagedTicker.pending = true;
+           stagedTicker.pendingText = data.payload.text; 
+           stagedTicker.pendingLoops = data.payload.loops; 
+           stagedTicker.pending = true;
         }
-        
         if (data.type === 'now_playing') {
-          const npWrapper = document.getElementById('np-wrapper');
-          const np = document.getElementById('now-playing-widget');
-          document.getElementById('np-title').innerText = data.payload.title || "Track";
-          document.getElementById('np-artist').innerText = data.payload.artist || "Artist";
-          const artImg = document.getElementById('np-art');
-          artImg.failed = false; 
-          artImg.src = data.payload.art || "./stream-player/images/NorseFoundryVerticalLogo.png";
-          applyPosition(npWrapper, data.payload.pos);
-          np.classList.add('active');
-          clearTimeout(npTimeout);
-          npTimeout = setTimeout(() => np.classList.remove('active'), 12000);
+           const np = document.getElementById('now-playing-widget');
+           document.getElementById('np-title').innerText = data.payload.title || "Unknown Track";
+           document.getElementById('np-artist').innerText = data.payload.artist || "Unknown Artist";
+           document.getElementById('np-art').src = data.payload.art || "stream-player/images/image_ef100c.png";
+           
+           applyPosition(np, data.payload.pos);
+           np.classList.add('active');
+           
+           clearTimeout(npTimeout);
+           npTimeout = setTimeout(() => { np.classList.remove('active'); }, 12000);
         }
-        
-        if (data.type === 'dice_roll') {
+        if (data.type === 'dice_roll' || data.type === 'dice_reset') {
           const diceFrame = document.getElementById('dice-of-doom');
-          if (diceFrame && diceFrame.contentWindow) {
-            diceFrame.contentWindow.postMessage(data.payload || 'ROLL_DICE', '*');
-          }
+          const command = data.type === 'dice_roll' ? 'ROLL_DICE' : 'RESET_DICE';
+          if(diceFrame && diceFrame.contentWindow) diceFrame.contentWindow.postMessage(command, '*');
         }
       } catch(e) {}
     });
 
     document.getElementById('main-ticker-track').addEventListener('animationiteration', () => {
-      if (stagedTicker.pending) {
-        stagedTicker.active = true; stagedTicker.text = stagedTicker.pendingText; 
-        stagedTicker.loops = stagedTicker.pendingLoops; stagedTicker.pending = false;
-      } else if (stagedTicker.active) {
-        stagedTicker.loops--; 
-        if (stagedTicker.loops <= 0) { stagedTicker.active = false; stagedTicker.text = ""; }
-      }
+        if (stagedTicker.pending) {
+            stagedTicker.active = true; 
+            stagedTicker.text = stagedTicker.pendingText; 
+            stagedTicker.loops = stagedTicker.pendingLoops; 
+            stagedTicker.pending = false;
+        }
+        if (stagedTicker.active) {
+            stagedTicker.loops--; 
+            if (stagedTicker.loops < 0) { stagedTicker.active = false; stagedTicker.text = ""; }
+        }
+        // ONLY triggers visual update, does NOT hit the network here
     });
 
     let globalAudioCtx = null;
@@ -242,22 +241,32 @@
     function fireConfetti() {
       const container = document.getElementById('confetti-container'); 
       const emojis = ['🎉', '💸', '✨', '🪙', '🎮', '⚔️'];
-      for (let i = 0; i < 50; i++) { 
-        let el = document.createElement('div'); el.innerText = emojis[Math.floor(Math.random() * emojis.length)]; 
-        el.className = 'confetti-piece'; el.style.left = Math.random() * 100 + 'vw'; 
-        el.style.animationDuration = (Math.random() * 2 + 2) + 's'; el.style.fontSize = (Math.random() * 20 + 20) + 'px'; 
-        container.appendChild(el); setTimeout(() => el.remove(), 5000); 
+      for (let i = 0; i < 60; i++) { 
+        let el = document.createElement('div'); 
+        el.innerText = emojis[Math.floor(Math.random() * emojis.length)]; 
+        el.className = 'confetti-piece'; 
+        el.style.left = Math.random() * 100 + 'vw'; 
+        el.style.animationDuration = (Math.random() * 2 + 2) + 's'; 
+        el.style.fontSize = (Math.random() * 20 + 20) + 'px'; 
+        container.appendChild(el); 
+        setTimeout(() => el.remove(), 5000); 
       }
       playCriticalHitSound();
     }
 
     setInterval(() => {
       let now = new Date().getTime(), distance = targetDate - now, isOvertime = distance < 0, absDist = Math.abs(distance);
-      let d = Math.floor(absDist / (1000 * 60 * 60 * 24)), h = Math.floor((absDist % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)), m = Math.floor((absDist % (1000 * 60 * 60)) / (1000 * 60)), s = Math.floor((absDist % (1000 * 60)) / 1000);
+      let d = Math.floor(absDist / (1000 * 60 * 60 * 24));
+      let h = Math.floor((absDist % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      let m = Math.floor((absDist % (1000 * 60 * 60)) / (1000 * 60));
+      let s = Math.floor((absDist % (1000 * 60)) / 1000);
       let tStr = (h < 10 ? "0" + h : h) + ":" + (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
       if (d > 0) tStr = d + ":" + tStr; 
+      
       document.getElementById("cd-time").innerHTML = isOvertime ? "+" + tStr : tStr;
-      const cdLabel = document.querySelector('.cd-label'); cdLabel.innerText = isOvertime ? "MARATHON OVERTIME" : "EXTRA LIFE MARATHON"; cdLabel.style.color = isOvertime ? "#FF5555" : "#D4AF37";
+      const cdLabel = document.querySelector('.cd-label'); 
+      cdLabel.innerText = isOvertime ? "MARATHON OVERTIME" : "EXTRA LIFE MARATHON"; 
+      cdLabel.style.color = isOvertime ? "#FF5555" : "#D4AF37";
     }, 1000);
 
     let seenDonationIDs = [], donationQueue = [], isAlerting = false, isFirstLoad = true;
@@ -267,6 +276,7 @@
         const cacheBuster = Date.now();
         let apiURL = `https://extralife.donordrive.com/api/teams/${teamID}`;
         
+        // Polling Team/Participant Data
         let tRes = await fetch(`${apiURL}?_t=${cacheBuster}`, { cache: 'no-store' });
         if(!tRes.ok) {
           apiURL = `https://extralife.donordrive.com/api/participants/${teamID}`;
@@ -275,22 +285,23 @@
         if(!tRes.ok) return;
 
         const tData = await tRes.json(); 
-        let raised = tData.sumDonations || 0; 
         
+        // STRICT OPTIMIZED LIMIT: ONLY POLL 15 DONATIONS TO PREVENT RATE LIMITING
         const dRes = await fetch(`${apiURL}/donations?limit=15&_t=${cacheBuster}`, { cache: 'no-store' }); 
         if(!dRes.ok) return; 
 
         const dData = await dRes.json();
         const dons = Array.isArray(dData) ? dData : [];
 
-        if (raised > 0 && dons.length === 0) return;
-        
+        let raised = tData.sumDonations || 0; 
         let goal = tData.fundraisingGoal || 1; 
         document.getElementById('progress-bar-fill').style.width = Math.min((raised / goal) * 100, 100) + '%'; 
         
         let str = ""; 
         if (stagedTicker.active && stagedTicker.text && stagedTicker.text.trim() !== "") { 
           str += `📢 <span class="green-text">${stagedTicker.text.toUpperCase()}</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `; 
+        } else if (customTickerText.trim() !== "") { 
+          str += `📢 <span class="green-text">${customTickerText.toUpperCase()}</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `; 
         }
         
         let guildName = tData.name || tData.displayName || "Our Guild";
@@ -308,13 +319,7 @@
           if(!seenDonationIDs.includes(dons[i].donationID)){ 
             seenDonationIDs.push(dons[i].donationID); 
             if(!isFirstLoad) {
-              const newAlert = { id: dons[i].donationID, name: dons[i].displayName || "Hero", amount: dons[i].amount, timestamp: Date.now() };
-              
-              if(client.connected) {
-                client.publish(topicName, JSON.stringify({ type: 'alert', payload: newAlert }));
-              } else {
-                donationQueue.push(newAlert);
-              }
+              donationQueue.push({ id: dons[i].donationID, name: dons[i].displayName || "Hero", amount: dons[i].amount, timestamp: Date.now() });
             } 
           } 
         } 
@@ -327,7 +332,7 @@
       isAlerting = true; 
       try {
         let cur = donationQueue.shift(); 
-        document.getElementById('alert-text').innerHTML = `${cur.name} gifted <span class="green-text">$${cur.amount}</span>!`; 
+        document.getElementById('alert-text').innerHTML = `<span style="color:#FFF;">${cur.name}</span> gifted <span class="green-text">$${cur.amount}</span>!`; 
         document.getElementById('alert-box').style.display = 'block'; 
         playCriticalHitSound();
         setTimeout(() => {
@@ -339,7 +344,10 @@
       }
     }
     
-    setInterval(fetchExtraLifeData, 15000); fetchExtraLifeData(); setInterval(processQueue, 1000);
+    // RESTORED OPTIMIZED NETWORK POLLING: EXACTLY 15 SECONDS
+    setInterval(fetchExtraLifeData, 15000); 
+    fetchExtraLifeData(); 
+    setInterval(processQueue, 1000);
   </script>
 </body>
 </html>
