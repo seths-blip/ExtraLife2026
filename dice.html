@@ -331,12 +331,11 @@
         btn.addEventListener('click', startSequence);
         rerollBtn.addEventListener('click', resetSequence);
 
-        // Remote Control Listener with FIXED reset logic
         window.addEventListener('message', (event) => {
             if (event.data === 'ROLL_DICE' || (event.data && event.data.type === 'ROLL_DICE')) {
                 startSequence();
             } else if (event.data === 'RESET_DICE' || (event.data && event.data.type === 'RESET_DICE')) {
-                resetSequence(); // BUG FIXED: Resets unconditionally, completely bypassing isRolling
+                resetSequence(); // BUG FIXED: Resets unconditionally
             }
         });
 
@@ -420,6 +419,7 @@
 
                     setTimeout(() => {
                         rerollBtn.classList.add('show-reroll');
+                        isRolling = false; // BUG FIXED: Unlocks so it can roll again
                     }, 1500); 
 
                 }, 4500); 
