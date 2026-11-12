@@ -45,6 +45,7 @@
 
   <div class="dashboard-grid">
     
+    <!-- CLOCK & TICKER -->
     <div class="panel">
       <h2>⏱️ Time & Ticker</h2>
       <div class="control-group">
@@ -89,10 +90,13 @@
       </div>
     </div>
 
+    <!-- 1-CLICK MUSIC PLAYER -->
     <div class="panel">
       <h2>🎵 Now Playing Dropdown</h2>
       <p style="font-size: 13px; color: #aaa; margin: -5px 0 10px 0;">Click a track below to instantly slide it onto the stream.</p>
+      
       <div id="playlist-container"></div>
+      
       <div class="control-group">
         <label>Slide-in Anchor</label>
         <div class="input-box">
@@ -104,6 +108,7 @@
           </select>
         </div>
       </div>
+
       <hr>
       <h3 style="margin:0 0 10px 0; font-size:14px; color:#ccc;">Manual Custom Track Override</h3>
       <div class="control-group">
@@ -116,12 +121,13 @@
       <div class="control-group">
         <label>Art URL</label>
         <div class="input-box">
-          <input type="text" id="np-art" placeholder="https://...">
+          <input type="text" id="np-art" placeholder="images/...">
         </div>
       </div>
       <button class="btn-special" onclick="triggerCustomNowPlaying()" style="margin-top: 10px;">▶ PUSH MANUAL TRACK</button>
     </div>
 
+    <!-- WIDGETS -->
     <div class="panel">
       <h2>🔗 Fullscreen Web Widgets</h2>
       <div class="control-group">
@@ -150,6 +156,7 @@
       <button onclick="sendPayload('dice_reset', null)" style="margin-top: 10px;">Reset Dice to Skull</button>
     </div>
 
+    <!-- ALERTS & EFFECTS -->
     <div class="panel">
       <h2>⚔️ Alerts & Effects</h2>
       <div class="control-group">
@@ -187,6 +194,7 @@
       </div>
       <button class="btn-special" style="margin-top:auto;" onclick="sendPayload('confetti', null)">🎉 FIRE CONFETTI CANNON</button>
     </div>
+
   </div>
 
   <script>
@@ -263,7 +271,8 @@
     }
 
     async function fetchPlaylist() {
-        const url = `https://seths-blip.github.io/extralife2026/stream-player/playlist.json?t=${Date.now()}`;
+        // Use a relative path so it resolves cleanly whether on GitHub Pages or local
+        const url = `stream-player/playlist.json?t=${Date.now()}`;
         const container = document.getElementById('playlist-container');
         let tracks = [];
         
@@ -274,7 +283,7 @@
             tracks = Array.isArray(data) ? data : (data.tracks || data.playlist || data.songs || []);
             if (tracks.length === 0) throw new Error("Empty array");
         } catch (e) {
-            console.warn("Could not load JSON from GitHub. Activating embedded fallback.");
+            console.warn("Could not load JSON. Activating embedded fallback.");
             tracks = fallbackPlaylist;
         }
 
@@ -282,25 +291,32 @@
         tracks.forEach(track => {
             const title = track.title || track.name || "Unknown Track";
             const artist = track.artist || track.author || track.creator || "Unknown Artist";
-            let art = track.art || track.artwork || track.cover || track.image || "https://upload.wikimedia.org/wikipedia/commons/c/ca/CD-ROM.png";
-
-            if (!art.startsWith("http")) {
-                art = art.replace(/^[\.\/]+/, ''); 
-                if (!art.startsWith('images/')) art = 'images/' + art;
-                if (!art.startsWith('stream-player/')) art = 'stream-player/' + art;
-                art = 'https://seths-blip.github.io/extralife2026/' + art;
+            
+            // Fix: Send the EXACT path from the JSON to the overlay without modifying it
+            let art = track.art || track.artwork || track.cover || track.image || "stream-player/images/image_ef100c.png";
+            
+            // Fix: Only build the display URL for the dashboard, leave the payload URL alone
+            let displayArt = art;
+            if (!displayArt.startsWith("http") && !displayArt.startsWith("stream-player/")) {
+                displayArt = "stream-player/" + displayArt;
             }
 
             const div = document.createElement('div');
             div.className = 'playlist-card';
             div.innerHTML = `
-              <img src="${art}" class="playlist-art" alt="art" onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/c/ca/CD-ROM.png'">
+              <img src="${displayArt}" class="playlist-art" alt="art" onerror="this.src='stream-player/images/image_ef100c.png'">
               <span class="playlist-title">${title}</span>
               <span class="playlist-artist">${artist}</span>
             `;
             
             div.onclick = () => {
-                sendPayload('now_playing', { title: title, artist: artist, art: art, pos: document.getElementById('np-pos').value });
+                sendPayload('now_playing', {
+                    title: title,
+                    artist: artist,
+                    art: art, // Sends the raw path directly
+                    pos: document.getElementById('np-pos').value
+                });
+                
                 div.style.borderColor = "#D4AF37";
                 setTimeout(() => div.style.borderColor = "transparent", 800);
             };
@@ -391,7 +407,7 @@
       sendPayload('now_playing', {
         title: document.getElementById('np-title').value || "Unknown Track",
         artist: document.getElementById('np-artist').value || "Unknown Artist",
-        art: document.getElementById('np-art').value || "https://upload.wikimedia.org/wikipedia/commons/c/ca/CD-ROM.png",
+        art: document.getElementById('np-art').value || "stream-player/images/image_ef100c.png",
         pos: document.getElementById('np-pos').value
       });
       document.getElementById('np-title').value = ""; document.getElementById('np-artist').value = ""; document.getElementById('np-art').value = "";
