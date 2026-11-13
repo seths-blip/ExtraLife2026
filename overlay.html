@@ -282,10 +282,10 @@
       let tStr = (h < 10 ? "0" + h : h) + ":" + (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
       if (d > 0) tStr = d + ":" + tStr; 
       
-      document.getElementById("cd-time").innerHTML = isOvertime ? "+" + tStr : tStr;
+      document.getElementById("cd-time").innerHTML = tStr;
       const cdLabel = document.querySelector('.cd-label'); 
-      cdLabel.innerText = isOvertime ? "MARATHON OVERTIME" : "EXTRA LIFE MARATHON"; 
-      cdLabel.style.color = isOvertime ? "#FF5555" : "#D4AF37";
+      cdLabel.innerText = isOvertime ? "EXTRA LIFE MARATHON" : "EXTRA LIFE MARATHON"; 
+      cdLabel.style.color = isOvertime ? "#D4AF37" : "#D4AF37";
     }, 1000);
 
     function playMagicCoinSound() { 
